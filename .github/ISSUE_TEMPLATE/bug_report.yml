@@ -5,7 +5,7 @@ labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: Thanks for helping improve Baituna. Do not include credentials or private data.
+      value: Thanks for helping improve Baituna. Do not include credentials or private data. After triage, implement this Issue on feature/<issue-number>-<short-kebab-name> from dev.
   - type: textarea
     id: summary
     attributes:
