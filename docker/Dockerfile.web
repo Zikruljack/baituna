@@ -1,0 +1,22 @@
+FROM node:24-alpine AS dependencies
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN npm ci
+
+FROM dependencies AS development
+WORKDIR /app
+COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--workspace=@baituna/web", "--", "--host", "0.0.0.0"]
+
+FROM development AS build
+RUN npm run build --workspace=@baituna/web
+
+FROM node:24-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/apps/web/.output ./.output
+EXPOSE 3000
+CMD ["node", ".output/server/index.mjs"]

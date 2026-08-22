@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: baituna
+      POSTGRES_USER: baituna
+      POSTGRES_PASSWORD: baituna
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U baituna -d baituna']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+      target: development
+    environment:
+      DATABASE_URL: postgresql://baituna:baituna@postgres:5432/baituna?schema=public
+      NUXT_DATABASE_URL: postgresql://baituna:baituna@postgres:5432/baituna?schema=public
+      NUXT_JWT_SECRET: change-me-for-any-non-local-environment
+    ports:
+      - '3000:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+      target: development
+    command: npm run db:migrate --workspace=@baituna/web
+    environment:
+      DATABASE_URL: postgresql://baituna:baituna@postgres:5432/baituna?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

@@ -1,0 +1,16 @@
+.git
+.github
+.husky
+node_modules
+**/node_modules
+.nuxt
+**/.nuxt
+.output
+**/.output
+coverage
+.env
+.env.*
+!apps/web/.env.example
+apps/mobile
+docs
+*.log
