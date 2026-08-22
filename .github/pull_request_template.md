@@ -2,6 +2,14 @@
 
 <!-- What problem does this change solve? -->
 
+## Issue and branch
+
+<!-- Feature PRs must target dev and use feature/<issue-number>-<short-name>. -->
+
+Closes #
+
+Branch: `feature/`
+
 ## Changes
 
 <!-- List the important implementation changes. -->
@@ -15,7 +23,8 @@
 
 ## Checklist
 
-- [ ] Linked issue or explained why one is unnecessary
+- [ ] Linked the required Issue with `Closes #<number>`
+- [ ] Branch follows `feature/<issue-number>-<short-kebab-name>` and targets `dev`
 - [ ] Kept the change focused and documented user-visible behaviour
 - [ ] Added or updated tests where business behaviour changed
 - [ ] Did not add credentials, generated output, or unrelated changes

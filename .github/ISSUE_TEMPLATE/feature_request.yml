@@ -10,6 +10,9 @@ body:
       description: What user problem would this solve?
     validations:
       required: true
+  - type: markdown
+    attributes:
+      value: If approved, implementation must use feature/<issue-number>-<short-kebab-name> from dev and open a pull request back to dev.
   - type: textarea
     id: proposal
     attributes:
