@@ -40,9 +40,12 @@ docs              Product and architecture documents
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md), follow Conventional Commits, and
-use the included issue and pull-request templates. Security issues must be
-reported according to [SECURITY.md](SECURITY.md), not filed as public issues.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the mandatory
+[branch workflow](docs/BRANCHING.md). Every Issue is developed on a
+`feature/**` branch and submitted to `dev` through a pull request. Follow
+Conventional Commits and use the included issue and pull-request templates.
+Security issues must be reported according to [SECURITY.md](SECURITY.md), not
+filed as public issues.
 
 ## License
 
