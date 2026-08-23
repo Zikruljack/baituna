@@ -83,8 +83,8 @@ function toggleTheme() {
           </Button>
         </NuxtLink>
 
-        <template v-if="isAuthenticated && user">
-          <div class="flex items-center gap-2">
+        <Transition name="fade" mode="out-in">
+          <div v-if="isAuthenticated && user" key="auth-user" class="flex items-center gap-2">
             <span class="text-xs font-medium hidden md:inline-block text-muted-foreground">
               {{ user.name }}
             </span>
@@ -93,15 +93,15 @@ function toggleTheme() {
               <span>Keluar</span>
             </Button>
           </div>
-        </template>
-        <template v-else>
-          <NuxtLink to="/login">
-            <Button size="sm" class="gap-1.5">
-              <LogIn class="size-4" />
-              <span>Masuk</span>
-            </Button>
-          </NuxtLink>
-        </template>
+          <div v-else key="auth-guest">
+            <NuxtLink to="/login">
+              <Button size="sm" class="gap-1.5">
+                <LogIn class="size-4" />
+                <span>Masuk</span>
+              </Button>
+            </NuxtLink>
+          </div>
+        </Transition>
       </div>
     </div>
   </header>
