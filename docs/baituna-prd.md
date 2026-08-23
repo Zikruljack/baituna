@@ -37,7 +37,9 @@ Lisensi: Apache-2.0. Status: proyek hobi, bukan target komersial.
 | Mosque Admin | 1 masjid | CRUD data masjid miliknya (setelah approved), CRUD jadwal Khatib/Imam/Muazzin                                                                        |
 | Public User  | —        | Cari masjid, lihat jadwal Jumat tanpa login; kalau sudah login, bisa daftarkan masjid baru (jalur satu-satunya untuk jadi Mosque Admin — lihat §4.0) |
 
-Catatan: Province Admin dan City Admin **tidak** masuk MVP — ditunda ke fase berikutnya. Struktur data Province/City tetap dipakai (untuk alamat masjid & filter wilayah), tapi tanpa peran admin di level itu. Ditambah entitas **Mukim** (lihat `baituna-erd.md` §6.1) sebagai unit administratif tambahan khas Aceh, agar pencarian/filter tidak bergantung sepenuhnya pada GPS.
+Catatan: Province Admin dan City Admin **tidak** masuk MVP — ditunda ke fase berikutnya. Struktur data Province/City tetap dipakai (untuk alamat masjid & filter wilayah), tapi tanpa peran admin di level itu.
+
+_Revisi 2026-08-23: entitas **Mukim** ada di schema tapi **tidak dipakai di MVP** — tidak diseed, tidak difilter, tidak ada UI. Lihat `baituna-erd.md` §6.1._
 
 ## 4. User Stories & Requirement Fungsional
 
@@ -52,7 +54,8 @@ Functional requirements:
 - Pendaftaran masjid terbuka untuk **user manapun yang sudah login**, tidak harus sudah punya role `mosque_admin` — ini jalur satu-satunya untuk mendapatkan role tersebut
 - Saat masjid **approved**: role user pendaftar otomatis di-upgrade ke `mosque_admin`, dan `Mosque.admin_user_id` di-set ke user tersebut. Saat **rejected**: role user tidak berubah
 - Saat submit, sistem cek duplikat lunak: cari masjid lain dengan nama mirip (fuzzy match) DAN jarak < 100m dari koordinat yang didaftarkan → tampilkan sebagai peringatan ke pendaftar, tapi tetap boleh submit (bukan hard block); Super Admin lihat flag ini saat review
-- Notifikasi status (approved/rejected) ke pendaftar minimal lewat in-app, email opsional
+- Notifikasi status (approved/rejected) ke pendaftar lewat in-app. _Revisi 2026-08-23: "in-app" diimplementasikan sebagai `GET /mosques/my-submissions` (daftar masjid yang pernah didaftarkan user + statusnya), **tanpa** entitas Notification. Email di luar cakupan MVP._
+- Satu user boleh mendaftarkan lebih dari satu masjid. Kepemilikan ditentukan `Mosque.admin_user_id` per masjid, bukan oleh role
 
 ### 4.1 Cari Masjid Terdekat
 
@@ -94,23 +97,34 @@ Functional requirements:
 - Struktur monorepo: `apps/web`, `apps/mobile`, `packages/shared`, `docs`, `docker`, `.github`
 - Conventional commits, GitHub Actions CI, template issue/PR
 
-## 6. Ringkasan Endpoint API (draft awal)
+## 6. Ringkasan Endpoint API
 
-| Method | Endpoint                             | Akses                                            |
-| ------ | ------------------------------------ | ------------------------------------------------ |
-| GET    | /mosques/nearby?lat&lng&radius       | Public                                           |
-| GET    | /mosques/search?q=                   | Public                                           |
-| GET    | /mosques/:id                         | Public                                           |
-| GET    | /mosques/:id/friday-schedule/current | Public                                           |
-| GET    | /mosques/:id/friday-schedule/history | Public                                           |
-| POST   | /mosques/:id/friday-schedule         | Mosque Admin                                     |
-| POST   | /mosques                             | Any authenticated user (submit, status=pending)  |
-| PATCH  | /mosques/:id/approve                 | Super Admin                                      |
-| PATCH  | /mosques/:id/reject                  | Super Admin                                      |
-| PATCH  | /mosques/:id                         | Mosque Admin (masjid miliknya, setelah approved) |
-| GET    | /mosques/pending                     | Super Admin                                      |
-| POST   | /auth/login                          | Public                                           |
+> Direvisi 2026-08-23. Endpoint bertanda ✚ ditambahkan setelah draft awal, sebagai konsekuensi keputusan di `superpowers/specs/2026-08-23-baituna-modules-design.md` §2 — tidak ada entitas baru yang ditambahkan.
+
+| Method | Endpoint                                          | Akses                                            |
+| ------ | ------------------------------------------------- | ------------------------------------------------ |
+| GET    | /mosques/nearby?lat&lng&radius                    | Public                                           |
+| GET    | /mosques/search?q=                                | Public                                           |
+| GET    | /mosques/:id                                      | Public                                           |
+| GET    | /mosques/:id/friday-schedule/current              | Public                                           |
+| GET    | /mosques/:id/friday-schedule/history              | Public                                           |
+| POST   | /mosques/:id/friday-schedule                      | Mosque Admin                                     |
+| ✚ PATCH | /mosques/:id/friday-schedule/:assignmentId       | Mosque Admin (tolak 403 kalau tanggal sudah lewat) |
+| ✚ GET  | /mosques/:id/people                               | Public                                           |
+| ✚ POST | /mosques/:id/people                               | Mosque Admin                                     |
+| ✚ PATCH | /mosques/:id/people/:personId                    | Mosque Admin                                     |
+| ✚ DELETE | /mosques/:id/people/:personId                   | Mosque Admin (soft delete)                       |
+| POST   | /mosques                                          | Any authenticated user (submit, status=pending)  |
+| PATCH  | /mosques/:id/approve                              | Super Admin                                      |
+| PATCH  | /mosques/:id/reject                               | Super Admin                                      |
+| PATCH  | /mosques/:id                                      | Mosque Admin (masjid miliknya, setelah approved) |
+| GET    | /mosques/pending                                  | Super Admin                                      |
+| ✚ GET  | /mosques/my-submissions                           | Any authenticated user                           |
+| ✚ GET  | /provinces                                        | Public                                           |
+| ✚ GET  | /provinces/:id/cities                             | Public                                           |
+| POST   | /auth/login                                       | Public (Super Admin hasil seed)                  |
+| ✚ GET  | /auth/google + callback                           | Public (jalur masuk Public User)                 |
 
 ---
 
-Dokumen ini final untuk MVP, siap jadi input agentic coding. Skema data lengkap: lihat `baituna-erd.md`.
+Dokumen ini final untuk MVP, siap jadi input agentic coding. Skema data lengkap: lihat `baituna-erd.md`. Pemecahan modul & alasan di balik revisi 2026-08-23: lihat `superpowers/specs/2026-08-23-baituna-modules-design.md`.
