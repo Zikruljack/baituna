@@ -43,11 +43,18 @@ Diadaptasi dari pola BaseModel (PHP/CodeIgniter) yang sudah dipakai user di proj
 - id (UUID, PK)
 - name
 - email (unique)
-- password_hash
+- password_hash (**nullable** — NULL untuk user yang masuk lewat OAuth)
+- provider (enum: `local`, `google` — default `local`)
+- provider_id (text, nullable — subject ID dari provider OAuth)
 - role (enum: super_admin, mosque_admin, public_user)
 - created_at, updated_at, deleted_at
+- **Constraint**: unique (provider, provider_id) — mencegah satu akun Google terhubung ke dua user
 
-**Mukim** _(unit administratif khas Aceh, di antara City dan Mosque — untuk filter/browse tanpa bergantung GPS)_
+_Catatan: `provider`/`provider_id` dan `password_hash` nullable ditambahkan setelah ERD awal, sebagai konsekuensi keputusan autentikasi di §6.3. Alasan lengkap ada di `docs/superpowers/specs/2026-08-23-baituna-modules-design.md` §2.1._
+
+**Mukim** _(unit administratif khas Aceh, di antara City dan Mosque)_
+
+> **STATUS: TIDAK DIPAKAI DI MVP.** Tabel ini dan kolom `Mosque.mukim_id` tetap ada di schema (selalu NULL), tapi tidak ada endpoint, seed data, filter, maupun UI yang menyentuhnya. Dipertahankan agar bisa dipakai tanpa migrasi ulang kalau nanti dibutuhkan. Jangan bangun fitur di atasnya tanpa konfirmasi eksplisit. Lihat design doc §2.3.
 
 - id (UUID, PK)
 - city_id (FK → City)
@@ -62,7 +69,7 @@ Diadaptasi dari pola BaseModel (PHP/CodeIgniter) yang sudah dipakai user di proj
 - latitude, longitude
 - city_id (FK → City)
 - province_id (FK → Province)
-- mukim_id (FK → Mukim, nullable — opsional, diisi kalau data mukim tersedia)
+- mukim_id (FK → Mukim, nullable — **selalu NULL di MVP**, lihat catatan entitas Mukim)
 - status (enum: pending, approved, rejected — default pending)
 - admin_user_id (FK → User, nullable — mosque admin penanggung jawab)
 - photo_url (nullable)
@@ -92,10 +99,10 @@ Diadaptasi dari pola BaseModel (PHP/CodeIgniter) yang sudah dipakai user di proj
 
 ```
 Province (1) ──< (N) City
-City     (1) ──< (N) Mukim
+City     (1) ──< (N) Mukim         [tidak dipakai di MVP]
 City     (1) ──< (N) Mosque
 Province (1) ──< (N) Mosque
-Mukim    (1) ──< (N) Mosque        [nullable]
+Mukim    (1) ──< (N) Mosque        [nullable, selalu NULL di MVP]
 Mosque   (N) ──> (1) User          [admin_user_id, nullable]
 Mosque   (1) ──< (N) Person
 Mosque   (1) ──< (N) FridayAssignment
@@ -110,7 +117,11 @@ User     (1) ──< (N) FridayAssignment  [created_by]
 - **RBAC MVP**: 3 peran saja — Super Admin, Mosque Admin, Public User. Province Admin/City Admin ditunda ke fase berikutnya
 - **Pengisian data masjid**: self-registration terbuka untuk **user manapun yang login** (bukan cuma Mosque Admin) + approval Super Admin, dengan soft duplicate check (nama mirip + jarak <100m)
 - **Role upgrade**: registrasi masjid adalah satu-satunya jalur untuk dapat role `mosque_admin` — otomatis upgrade saat masjid di-approve, `admin_user_id` di-set ke pendaftar
-- **Unit administratif**: tambah entitas **Mukim** (antara City dan Mosque, opsional/nullable) untuk mengakomodasi konteks Aceh; pencarian tetap coordinate-primary, Mukim untuk filter/browse fallback
+- **Unit administratif**: entitas **Mukim** ada di schema tapi **tidak dipakai di MVP** (revisi 2026-08-23) — tabel dan kolom `Mosque.mukim_id` dipertahankan agar bisa diaktifkan tanpa migrasi ulang, tapi tidak diseed dan tidak disentuh aplikasi. Pencarian sepenuhnya coordinate-primary
+- **Autentikasi** (ditambahkan 2026-08-23): Public User masuk lewat **Google OAuth**; Super Admin dibuat lewat seed script dengan email/password. Tidak ada registrasi email/password untuk publik. Konsekuensi pada tabel User: `password_hash` jadi nullable, tambah kolom `provider` dan `provider_id`
+- **Master Khatib/Imam/Muazzin** (ditambahkan 2026-08-23): Person dikelola lewat **CRUD penuh** di `/mosques/:id/people`; endpoint FridayAssignment hanya menerima `person_id` (bukan nama bebas) dan memvalidasi Person milik masjid yang sama. Soft delete, agar assignment lama tetap terbaca
+- **Notifikasi status masjid** (ditambahkan 2026-08-23): tidak ada entitas Notification. Pendaftar melihat status lewat `GET /mosques/my-submissions`, memanfaatkan `Mosque.status` yang sudah ada
+- **Kepemilikan masjid**: satu user boleh mendaftarkan lebih dari satu masjid. Kepemilikan ditentukan `Mosque.admin_user_id` per masjid, **bukan** oleh role — semua guard "masjid miliknya" harus mengecek `admin_user_id`, tidak cukup mengecek role
 - **Timezone "Jumat ini"**: Asia/Jakarta (WIB), transisi tengah malam WIB; endpoint `current` mengembalikan `has_assignment: false` kalau belum ada entri
 - **Khatib/Imam/Muazzin di FridayAssignment**: ketiganya nullable, tidak wajib diisi lengkap tiap minggu
 - **Rate limiting**: 60 req/menit per IP untuk endpoint publik tanpa auth
@@ -118,4 +129,13 @@ User     (1) ──< (N) FridayAssignment  [created_by]
 
 ---
 
-Skema ini final untuk MVP. Requirement produk & endpoint API: lihat `baituna-prd.md`.
+## 6.4 Riwayat Revisi
+
+| Tanggal | Perubahan |
+| --- | --- |
+| — | Versi awal, disusun sebagai input scaffolding |
+| 2026-08-23 | User: `password_hash` nullable + kolom `provider`/`provider_id` (Google OAuth). Mukim: ditandai tidak dipakai di MVP. §6.3: tambah keputusan autentikasi, CRUD Person, notifikasi via `my-submissions`, dan aturan kepemilikan masjid |
+
+---
+
+Skema ini final untuk MVP. Requirement produk & endpoint API: lihat `baituna-prd.md`. Pemecahan modul, alasan di balik keputusan §6.3, dan daftar endpoint lengkap (termasuk yang di luar PRD §6): lihat `superpowers/specs/2026-08-23-baituna-modules-design.md`.
