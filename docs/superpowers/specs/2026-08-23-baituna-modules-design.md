@@ -251,15 +251,19 @@ Sesuai baseline PRD §5:
 - E2E test minimal untuk 2 flow inti: cari masjid terdekat, submit & approve
   pendaftaran masjid
 
-## 8. Yang Perlu Persetujuan
+## 8. Status Persetujuan
 
-Dua hal berada di luar dokumen final dan menunggu persetujuan sebelum
-implementasi dimulai. Scaffold prompt melarang penambahan di luar ERD/PRD tanpa
-konfirmasi eksplisit, jadi keduanya belum dieksekusi.
+Dua hal di dokumen ini berada di luar ERD/PRD versi awal. Keduanya **sudah
+disetujui pada 2026-08-23** dan sudah dituangkan kembali ke `baituna-erd.md`
+dan `baituna-prd.md`, sehingga ketiga dokumen konsisten.
 
 1. **Perubahan tabel `users`** (§2.1) — `password_hash` jadi nullable, tambah
-   kolom `provider` dan `provider_id`. Di luar ERD §6.1. Memblokir modul 1.
+   kolom `provider` dan `provider_id`. Tercatat di ERD §6.1 dan §6.3.
 2. **Endpoint tambahan di luar PRD §6** — `PATCH /mosques/:id/friday-schedule/:assignmentId`
-   (§3.6), `GET /mosques/my-submissions` (§3.3), CRUD Person (§3.5), dan
-   `GET /provinces` + `GET /provinces/:id/cities` (§3.2). Semuanya turunan dari
-   keputusan §2, tidak menambah entitas baru.
+   (§3.6), `GET /mosques/my-submissions` (§3.3), CRUD Person (§3.5),
+   `GET /provinces` + `GET /provinces/:id/cities` (§3.2), dan jalur Google OAuth
+   (§3.1). Tercatat di tabel endpoint PRD §6 dengan tanda ✚. Tidak ada entitas
+   baru yang ditambahkan.
+
+Perubahan schema `users` belum diterapkan ke `apps/web/drizzle/schema.ts` dan
+belum ada migration — itu bagian dari implementasi modul 1.
