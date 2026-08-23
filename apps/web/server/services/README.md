@@ -26,3 +26,11 @@ Guards live in `server/utils/auth.ts`:
 Super Admins are created only by `npm run db:seed:admin`. Public users are
 created only by the Google OAuth callback, always as `public_user`. There is
 no public email/password registration.
+
+## Module 2 — Region Reference
+
+`region.service.ts` is the read-only boundary for public Province and City
+queries. It filters soft-deleted rows, scopes Cities to their Province, and
+sorts names alphabetically. Reference data is seeded with `npm run
+db:seed:regions`; the seed is idempotent and restores canonical Aceh rows that
+were soft-deleted. It never reads or writes Mukim data.

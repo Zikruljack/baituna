@@ -11,7 +11,9 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed:admin": "node --env-file=.env scripts/seed-super-admin.ts",
+    "db:seed:regions": "node --env-file=.env scripts/seed-regions.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

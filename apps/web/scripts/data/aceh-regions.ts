@@ -1,0 +1,27 @@
+export const ACEH_PROVINCE = 'Aceh';
+
+export const ACEH_CITY_NAMES = [
+  'Aceh Barat',
+  'Aceh Barat Daya',
+  'Aceh Besar',
+  'Aceh Jaya',
+  'Aceh Selatan',
+  'Aceh Singkil',
+  'Aceh Tamiang',
+  'Aceh Tengah',
+  'Aceh Tenggara',
+  'Aceh Timur',
+  'Aceh Utara',
+  'Banda Aceh',
+  'Bener Meriah',
+  'Bireuen',
+  'Gayo Lues',
+  'Langsa',
+  'Lhokseumawe',
+  'Nagan Raya',
+  'Pidie',
+  'Pidie Jaya',
+  'Sabang',
+  'Simeulue',
+  'Subulussalam',
+] as const;

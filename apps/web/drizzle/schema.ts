@@ -36,16 +36,20 @@ const createAuditColumns = () => ({
 
 export const provinces = pgTable('provinces', {
   ...createAuditColumns(),
-  name: text('name').notNull(),
+  name: text('name').notNull().unique(),
 });
 
-export const cities = pgTable('cities', {
-  ...createAuditColumns(),
-  provinceId: uuid('province_id')
-    .notNull()
-    .references(() => provinces.id),
-  name: text('name').notNull(),
-});
+export const cities = pgTable(
+  'cities',
+  {
+    ...createAuditColumns(),
+    provinceId: uuid('province_id')
+      .notNull()
+      .references(() => provinces.id),
+    name: text('name').notNull(),
+  },
+  (table) => [unique('cities_province_name_key').on(table.provinceId, table.name)],
+);
 
 export const mukims = pgTable('mukims', {
   ...createAuditColumns(),
