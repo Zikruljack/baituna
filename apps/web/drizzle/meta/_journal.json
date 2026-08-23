@@ -8,6 +8,13 @@
       "when": 1787367843947,
       "tag": "0000_real_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787465100470,
+      "tag": "0001_smiling_jazinda",
+      "breakpoints": true
     }
   ]
 }

@@ -15,6 +15,7 @@ import {
 export const userRole = pgEnum('UserRole', ['super_admin', 'mosque_admin', 'public_user']);
 export const mosqueStatus = pgEnum('MosqueStatus', ['pending', 'approved', 'rejected']);
 export const auditAction = pgEnum('AuditAction', ['CREATE', 'UPDATE', 'DELETE']);
+export const authProvider = pgEnum('AuthProvider', ['local', 'google']);
 
 const createAuditColumns = () => ({
   id: uuid('id').primaryKey().defaultRandom(),
@@ -54,13 +55,21 @@ export const mukims = pgTable('mukims', {
   name: text('name').notNull(),
 });
 
-export const users = pgTable('users', {
-  ...createAuditColumns(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  role: userRole('role').notNull().default('public_user'),
-});
+export const users = pgTable(
+  'users',
+  {
+    ...createAuditColumns(),
+    name: text('name').notNull(),
+    email: text('email').notNull().unique(),
+    // Users who sign in with Google do not have a local password.
+    passwordHash: text('password_hash'),
+    provider: authProvider('provider').notNull().default('local'),
+    // OAuth subject identifier; null for local accounts.
+    providerId: text('provider_id'),
+    role: userRole('role').notNull().default('public_user'),
+  },
+  (table) => [unique('users_provider_key').on(table.provider, table.providerId)],
+);
 
 export const mosques = pgTable('mosques', {
   ...createAuditColumns(),
