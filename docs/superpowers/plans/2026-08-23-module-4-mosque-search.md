@@ -8,7 +8,7 @@
 
 **Tech Stack:** Nuxt 4 / Nitro, TypeScript (strict), Drizzle ORM + PostgreSQL, Zod 4, Vitest 4. No new dependencies — Haversine is plain arithmetic, no geo library.
 
-**Spec:** `docs/superpowers/specs/2026-08-23-baituna-modules-design.md` (this plan implements §3.4). Background: `docs/baituna-prd.md` §4.1, §5 (rate limiting, Haversine + bounding box decision), `docs/baituna-erd.md` §6.1 (`mosques` entity).
+**Spec:** `docs/superpowers/specs/2026-08-23-module-4-mosque-search.md` (module-specific contract). Also implements §3.4 of the shared `docs/superpowers/specs/2026-08-23-baituna-modules-design.md`. Background: `docs/baituna-prd.md` §4.1, §5 (rate limiting, Haversine + bounding box decision), `docs/baituna-erd.md` §6.1 (`mosques` entity).
 
 ## Global Constraints
 

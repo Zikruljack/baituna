@@ -8,7 +8,7 @@
 
 **Tech Stack:** Nuxt 4 / Nitro, TypeScript (strict), Drizzle ORM + PostgreSQL, Zod 4, Vitest 4. No new dependencies.
 
-**Spec:** `docs/superpowers/specs/2026-08-23-baituna-modules-design.md` (this plan implements §2.2 and §3.5). Background: `docs/baituna-erd.md` §6.1 (`people` entity); PRD §6 endpoint table (four `✚`-marked Person endpoints).
+**Spec:** `docs/superpowers/specs/2026-08-23-module-5-person.md` (module-specific contract). Also implements §2.2 and §3.5 of the shared `docs/superpowers/specs/2026-08-23-baituna-modules-design.md`. Background: `docs/baituna-erd.md` §6.1 (`people` entity); PRD §6 endpoint table (four `✚`-marked Person endpoints).
 
 **Depends on:** Module 1 (Auth & RBAC — `requireMosqueOwner`) and Module 7 (Audit Log — `withAudit`), both already implemented in this repo as of 2026-08-23.
 
