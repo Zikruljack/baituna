@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Moon, Sun, Building2, BookOpen, Compass, Palette, LogIn, LogOut, PlusCircle } from 'lucide-vue-next';
+import { Moon, Sun, Building2, BookOpen, Compass, LogIn, LogOut, PlusCircle } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 
 const colorMode = useColorMode();
@@ -46,13 +46,6 @@ function toggleTheme() {
           >
             <BookOpen class="size-4" />
             Jadwal Jumat
-          </NuxtLink>
-          <NuxtLink
-            to="/design-system"
-            class="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-secondary-foreground bg-secondary-soft/60 hover:bg-secondary-soft transition-colors"
-          >
-            <Palette class="size-4" />
-            Design System
           </NuxtLink>
         </nav>
       </div>
