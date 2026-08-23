@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Inter Tight", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --radius: 0.625rem;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #F7F4EE;
+  --card: #FFFDF9;
+  --foreground: #1F1D18;
+  --muted-foreground: #655F53;
+  --border: #E4DDCE;
+  --border-strong: #D2C8B3;
+
+  --primary: #0F5132;
+  --primary-foreground: #FFFDF9;
+  --primary-soft: #DAE8DF;
+
+  --secondary: #C9A227;
+  --secondary-foreground: #6B5312;
+  --secondary-soft: #F3E7C6;
+
+  --destructive: #7B1830;
+  --destructive-foreground: #FFFDF9;
+  --destructive-soft: #F0DADF;
+}
+
+.dark {
+  --background: #1A1712;
+  --card: #221E18;
+  --foreground: #EFEAE0;
+  --muted-foreground: #A29A8B;
+  --border: #332E26;
+  --border-strong: #453E33;
+
+  --primary: #2E9E68;
+  --primary-foreground: #0B1710;
+  --primary-soft: #1B3A2A;
+
+  --secondary: #D8B14A;
+  --secondary-foreground: #E3C169;
+  --secondary-soft: #3A2F16;
+
+  --destructive: #D2647C;
+  --destructive-foreground: #1A0A0F;
+  --destructive-soft: #3B1C25;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-soft: var(--secondary-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
