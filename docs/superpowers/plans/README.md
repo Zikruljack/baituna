@@ -1,28 +1,35 @@
 # Implementation Plans
 
-Each plan implements one module from
-`../specs/2026-08-23-baituna-modules-design.md` and produces working, testable
-software on its own. Plans are written for an engineer with no prior context on
+Most plans implement one module from
+`../specs/2026-08-23-baituna-modules-design.md`. One plan (the design system)
+implements `../specs/2026-08-23-baituna-design-system.md` instead — it's a
+frontend foundation, not a product module, and every page-building module
+depends on it. Plans are written for an engineer with no prior context on
 this codebase — read the plan's header and Global Constraints before starting.
 
 ## Order
 
-Build order follows the dependency graph in the design doc §6. A module cannot
-start before the modules it consumes are merged.
+Build order for backend modules follows the dependency graph in the modules
+design doc §6. A module cannot start before the modules it consumes are
+merged. The design system plan has no backend dependency and can be built in
+parallel with any backend module, but any *page* (as opposed to API) work in
+a module should wait for it, since it supplies the tokens and components
+those pages use.
 
 | # | Module | Plan | Depends on | Status |
 | --- | --- | --- | --- | --- |
 | 1 | Auth & RBAC | `2026-08-23-module-1-auth-rbac.md` | — | ready |
-| 2 | Region Reference | not written yet | — | pending |
+| 2 | Region Reference | `2026-08-23-module-2-region-reference.md` | — | ready |
 | 3 | Mosque Registration & Approval | not written yet | 1, 2, 7 | pending |
 | 4 | Mosque Search & Detail | not written yet | — | pending |
 | 5 | Person | not written yet | 1, 7 | pending |
 | 6 | Friday Assignment | not written yet | 1, 5, 7 | pending |
 | 7 | Audit Log | not written yet | — | pending |
 | M | Mobile modules | not written yet | matching backend module | pending |
+| D | Web Design System | `2026-08-23-web-design-system.md` | — | ready |
 
-Modules 1, 2, 4, and 7 have no dependencies on each other and can be worked in
-parallel.
+Modules 1, 2, 4, 7, and D have no dependencies on each other and can be
+worked in parallel.
 
 ## Writing the next plan
 
