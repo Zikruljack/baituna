@@ -8,7 +8,26 @@ export const openApiDocument = {
   paths: {
     '/mosques/nearby': { get: { summary: 'Find nearby approved mosques' } },
     '/mosques/search': { get: { summary: 'Search approved mosques' } },
-    '/mosques/{id}': { get: { summary: 'Get mosque detail' } },
+    '/mosques/{id}': {
+      get: { summary: 'Get mosque detail' },
+      patch: {
+        summary: 'Edit an approved mosque (owner only)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Mosque updated' },
+          403: { description: 'Caller does not own this mosque' },
+          409: { description: 'Mosque is not approved yet' },
+        },
+      },
+    },
     '/mosques/{id}/friday-schedule/current': {
       get: { summary: 'Get this or next Friday assignment' },
     },
@@ -16,10 +35,71 @@ export const openApiDocument = {
       get: { summary: 'Get Friday assignment history' },
     },
     '/mosques/{id}/friday-schedule': { post: { summary: 'Create Friday assignment' } },
-    '/mosques': { post: { summary: 'Submit mosque registration' } },
-    '/mosques/{id}/approve': { patch: { summary: 'Approve mosque registration' } },
-    '/mosques/{id}/reject': { patch: { summary: 'Reject mosque registration' } },
-    '/mosques/pending': { get: { summary: 'List pending mosque registrations' } },
+    '/mosques': {
+      post: {
+        summary: 'Submit mosque registration',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          201: { description: 'Created with status=pending and a duplicateWarning list' },
+        },
+      },
+    },
+    '/mosques/{id}/approve': {
+      patch: {
+        summary: 'Approve mosque registration',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Mosque approved; submitter upgraded to mosque_admin' },
+          404: { description: 'Mosque not found' },
+          409: { description: 'Mosque is not pending' },
+        },
+      },
+    },
+    '/mosques/{id}/reject': {
+      patch: {
+        summary: 'Reject mosque registration',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Mosque rejected; submitter role unchanged' },
+          404: { description: 'Mosque not found' },
+          409: { description: 'Mosque is not pending' },
+        },
+      },
+    },
+    '/mosques/pending': {
+      get: {
+        summary: 'List pending mosque registrations',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Pending mosques, oldest first' },
+        },
+      },
+    },
+    '/mosques/my-submissions': {
+      get: {
+        summary: "List the caller's own mosque submissions and their status",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: { description: 'Submissions in any status, newest first' },
+        },
+      },
+    },
     '/auth/login': { post: { summary: 'Authenticate user' } },
     '/provinces': {
       get: {
