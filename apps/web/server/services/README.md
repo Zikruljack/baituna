@@ -27,6 +27,45 @@ Super Admins are created only by `npm run db:seed:admin`. Public users are
 created only by the Google OAuth callback, always as `public_user`. There is
 no public email/password registration.
 
+## Module 7 — Audit Log
+
+`audit.service.ts` is not a route module. It exposes `withAudit`, called
+from inside another service's own `db.transaction()` block, right after
+the business write it audits:
+
+```typescript
+await db.transaction(async (tx) => {
+  const [inserted] = await tx.insert(someTable).values({ ... }).returning();
+  if (!inserted) throw new Error('...');
+
+  await withAudit(tx, {
+    table: someTable,
+    tableName: 'some_table_name', // must match the Postgres table name
+    recordId: inserted.id,
+    action: 'CREATE', // or 'UPDATE' / 'DELETE'
+    actorId, // the caller's user id, or null for system writes
+    oldData: null, // the row's prior field values, or null on CREATE
+    newData: { ... }, // only the fields relevant to this change
+    currentHistory: inserted.history as unknown[],
+  });
+
+  return inserted;
+});
+```
+
+Rules:
+
+- `DELETE` in this system is always a soft delete (`UPDATE ... SET
+  deleted_at = now()`), never `DELETE FROM`. Pass `action: 'DELETE'` and
+  `newData: null` for it, matching `createMosque` in `mosque.service.ts`
+  for the `CREATE` shape.
+- `oldData`/`newData` don't need every column — only the fields worth
+  showing in a history diff (skip audit columns like `modifiedAt`).
+- Raw queries that bypass a service never get audited. This is an
+  accepted trade-off (ERD §6.0), not a bug to work around.
+
+See `mosque.service.ts` `createMosque` for a complete worked example.
+
 ## Module 2 — Region Reference
 
 `region.service.ts` is the read-only boundary for public Province and City
