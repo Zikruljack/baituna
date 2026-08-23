@@ -24,7 +24,7 @@ those pages use.
 | 4 | Mosque Search & Detail | not written yet | — | pending |
 | 5 | Person | not written yet | 1, 7 | pending |
 | 6 | Friday Assignment | not written yet | 1, 5, 7 | pending |
-| 7 | Audit Log | not written yet | — | pending |
+| 7 | Audit Log | `2026-08-23-module-7-audit-log.md` | — | ready |
 | M | Mobile modules | not written yet | matching backend module | pending |
 | D | Web Design System | `2026-08-23-web-design-system.md` | — | ready |
 
