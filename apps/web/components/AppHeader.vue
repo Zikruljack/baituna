@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Moon, Sun, Building2, BookOpen, Compass, LogIn, LogOut, PlusCircle, Github } from 'lucide-vue-next';
+import { Moon, Sun, Building2, BookOpen, Compass, LogIn, LogOut, PlusCircle, Github, Smartphone } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 
 const colorMode = useColorMode();
@@ -82,6 +82,18 @@ function toggleTheme() {
             class="rounded-lg border-border text-foreground hover:bg-card"
           >
             <Github class="size-4" />
+          </Button>
+        </a>
+
+        <!-- Download App Button -->
+        <a
+          href="#"
+          aria-label="Unduh Aplikasi Baituna di PlayStore atau AppStore"
+          class="hidden md:inline-flex"
+        >
+          <Button variant="outline" size="sm" class="gap-1.5">
+            <Smartphone class="size-4 text-primary" />
+            <span>Unduh Aplikasi</span>
           </Button>
         </a>
 
