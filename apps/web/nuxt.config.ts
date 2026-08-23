@@ -11,6 +11,7 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/tailwind.css'],
   app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
     head: {
       title: 'Baituna - Platform Informasi Masjid Aceh',
       meta: [
