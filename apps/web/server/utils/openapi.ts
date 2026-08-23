@@ -21,5 +21,33 @@ export const openApiDocument = {
     '/mosques/{id}/reject': { patch: { summary: 'Reject mosque registration' } },
     '/mosques/pending': { get: { summary: 'List pending mosque registrations' } },
     '/auth/login': { post: { summary: 'Authenticate user' } },
+    '/provinces': {
+      get: {
+        summary: 'List active Provinces',
+        security: [],
+        responses: {
+          200: { description: 'Active Provinces sorted by name' },
+        },
+      },
+    },
+    '/provinces/{id}/cities': {
+      get: {
+        summary: 'List active Cities in a Province',
+        security: [],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Active Cities sorted by name' },
+          400: { description: 'Malformed Province UUID' },
+          404: { description: 'Province not found or has been soft-deleted' },
+        },
+      },
+    },
   },
 } as const;
