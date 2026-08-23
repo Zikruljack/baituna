@@ -9,7 +9,6 @@ import {
   Building2,
   Users,
   Compass,
-  Sparkles,
   ShieldCheck,
   Coins,
   Filter,
@@ -218,10 +217,6 @@ const featuredFriday = computed(() => mosques[0] ?? {
           <div class="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1 shadow-xs">
             <span class="size-2 rounded-full bg-primary animate-pulse" />
             <span class="text-xs font-semibold text-foreground">Informasi Terkini Masjid se-Aceh</span>
-            <span class="text-muted-foreground text-xs">·</span>
-            <NuxtLink to="/design-system" class="text-xs font-medium text-secondary-foreground hover:underline">
-              Lihat Design System &rarr;
-            </NuxtLink>
           </div>
 
           <h1 class="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl text-foreground text-balance">
@@ -507,14 +502,6 @@ const featuredFriday = computed(() => mosques[0] ?? {
             <p class="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               Baituna mendorong keterbukaan informasi jadwal ibadah, pengelolaan dana infaq masjid, dan kemudahan silaturahmi jamaah dengan para ulama di Aceh.
             </p>
-            <div class="flex items-center gap-4 pt-2">
-              <NuxtLink to="/design-system">
-                <Button variant="outline" size="sm" class="gap-1.5">
-                  <Sparkles class="size-4 text-primary" />
-                  <span>Komponen Design System</span>
-                </Button>
-              </NuxtLink>
-            </div>
           </div>
 
           <!-- Stat Counters -->
@@ -620,12 +607,6 @@ const featuredFriday = computed(() => mosques[0] ?? {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-
-              <NuxtLink to="/design-system#cards">
-                <Button variant="outline" size="lg" class="w-full sm:w-auto">
-                  Pelajari Alur Approval
-                </Button>
-              </NuxtLink>
             </div>
           </div>
         </div>

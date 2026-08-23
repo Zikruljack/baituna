@@ -55,9 +55,6 @@ import { Building2, ShieldCheck, MapPin } from 'lucide-vue-next';
             <li>
               <NuxtLink to="/#petugas-jumat" class="hover:text-primary transition-colors">Kelola Jadwal Petugas</NuxtLink>
             </li>
-            <li>
-              <NuxtLink to="/design-system" class="text-secondary-foreground font-medium hover:underline">Design System Components</NuxtLink>
-            </li>
           </ul>
         </div>
 
