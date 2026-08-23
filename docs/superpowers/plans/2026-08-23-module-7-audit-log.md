@@ -8,7 +8,7 @@
 
 **Tech Stack:** Nuxt 4 / Nitro, TypeScript (strict), Drizzle ORM + PostgreSQL, Vitest 4. No new dependencies.
 
-**Spec:** `docs/superpowers/specs/2026-08-23-baituna-modules-design.md` (this plan implements §3.7). Background: `docs/baituna-erd.md` §6.0 (base audit fields, `history`, `AuditLog` entity).
+**Spec:** `docs/superpowers/specs/2026-08-23-module-7-audit-log.md` (module-specific contract). Also implements §3.7 of the shared `docs/superpowers/specs/2026-08-23-baituna-modules-design.md`. Background: `docs/baituna-erd.md` §6.0 (base audit fields, `history`, `AuditLog` entity).
 
 ## Global Constraints
 

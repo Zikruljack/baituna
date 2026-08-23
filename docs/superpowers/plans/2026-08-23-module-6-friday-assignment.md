@@ -8,7 +8,7 @@
 
 **Tech Stack:** Nuxt 4 / Nitro, TypeScript (strict), Drizzle ORM + PostgreSQL, Zod 4, Vitest 4. No new dependencies — WIB's fixed UTC+7 offset (Indonesia abolished DST decades ago) makes a timezone library unnecessary; plain `Date` arithmetic is exact and simpler to audit.
 
-**Spec:** `docs/superpowers/specs/2026-08-23-baituna-modules-design.md` (this plan implements §3.6). Background: `docs/baituna-prd.md` §4.2; `docs/baituna-erd.md` §6.1 (`friday_assignments` entity, unique `(mosque_id, assignment_date)`).
+**Spec:** `docs/superpowers/specs/2026-08-23-module-6-friday-assignment.md` (module-specific contract). Also implements §3.6 of the shared `docs/superpowers/specs/2026-08-23-baituna-modules-design.md`. Background: `docs/baituna-prd.md` §4.2; `docs/baituna-erd.md` §6.1 (`friday_assignments` entity, unique `(mosque_id, assignment_date)`).
 
 **Depends on:** Module 1 (Auth & RBAC — `requireMosqueOwner`), Module 5 (Person — Person rows to validate `person_id` against), and Module 7 (Audit Log — `withAudit`). All three already implemented in this repo as of 2026-08-23 (Module 5's plan is written but its code may not be merged yet — Task 3 below reads Person rows directly via Drizzle rather than importing Module 5's service functions, so it does not hard-depend on Module 5's service file existing, only on the `people` table, which is already in `schema.ts`).
 
