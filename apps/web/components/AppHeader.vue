@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Moon, Sun, Building2, BookOpen, Compass, Palette, LogIn, PlusCircle } from 'lucide-vue-next';
+import { Moon, Sun, Building2, BookOpen, Compass, Palette, LogIn, LogOut, PlusCircle } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 
 const colorMode = useColorMode();
+const { user, isAuthenticated, logout } = useAuth();
 
 function toggleTheme() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
@@ -82,10 +83,25 @@ function toggleTheme() {
           </Button>
         </NuxtLink>
 
-        <Button size="sm" class="gap-1.5">
-          <LogIn class="size-4" />
-          <span>Masuk Admin</span>
-        </Button>
+        <template v-if="isAuthenticated && user">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium hidden md:inline-block text-muted-foreground">
+              {{ user.name }}
+            </span>
+            <Button variant="outline" size="sm" class="gap-1.5" @click="logout">
+              <LogOut class="size-4" />
+              <span>Keluar</span>
+            </Button>
+          </div>
+        </template>
+        <template v-else>
+          <NuxtLink to="/login">
+            <Button size="sm" class="gap-1.5">
+              <LogIn class="size-4" />
+              <span>Masuk</span>
+            </Button>
+          </NuxtLink>
+        </template>
       </div>
     </div>
   </header>
