@@ -36,11 +36,11 @@ async function onSubmit() {
         <form class="space-y-4" @submit.prevent="onSubmit">
           <div class="space-y-2">
             <Label for="email">Email</Label>
-            <Input id="email" v-model="email" type="email" required autocomplete="email" />
+            <Input id="email" v-model="email" type="email" placeholder="nama@email.com" required autocomplete="email" />
           </div>
           <div class="space-y-2">
             <Label for="password">Kata Sandi</Label>
-            <Input id="password" v-model="password" type="password" required autocomplete="current-password" />
+            <Input id="password" v-model="password" type="password" placeholder="••••••••" required autocomplete="current-password" />
           </div>
           <Button type="submit" class="w-full" :disabled="isSubmitting">
             {{ isSubmitting ? 'Memproses...' : 'Masuk' }}
