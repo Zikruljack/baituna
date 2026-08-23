@@ -22,7 +22,7 @@ those pages use.
 | 2 | Region Reference | `2026-08-23-module-2-region-reference.md` | — | ready |
 | 3 | Mosque Registration & Approval | `2026-08-23-module-3-mosque-registration.md` | 1, 2, 7 | ready |
 | 4 | Mosque Search & Detail | `2026-08-23-module-4-mosque-search.md` | — | ready |
-| 5 | Person | not written yet | 1, 7 | pending |
+| 5 | Person | `2026-08-23-module-5-person.md` | 1, 7 | ready |
 | 6 | Friday Assignment | not written yet | 1, 5, 7 | pending |
 | 7 | Audit Log | `2026-08-23-module-7-audit-log.md` | — | ready |
 | M | Mobile modules | not written yet | matching backend module | pending |
