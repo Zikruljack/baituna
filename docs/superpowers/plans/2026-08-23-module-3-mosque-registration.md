@@ -8,7 +8,7 @@
 
 **Tech Stack:** Nuxt 4 / Nitro, TypeScript (strict), Drizzle ORM + PostgreSQL, Zod 4, Vitest 4. No new dependencies. Fuzzy name matching for the duplicate check uses PostgreSQL's built-in trigram similarity (`pg_trgm` extension + `similarity()`), not a new npm package.
 
-**Spec:** `docs/superpowers/specs/2026-08-23-baituna-modules-design.md` (this plan implements §2.1's consequence for ownership, §3.3 in full). Background: `docs/baituna-prd.md` §4.0, §6 (endpoint table); `docs/baituna-erd.md` §6.1 (`mosques` entity), §6.3 (ownership rule).
+**Spec:** `docs/superpowers/specs/2026-08-23-module-3-mosque-registration.md` (module-specific contract). Also implements §2.1's consequence for ownership and §3.3 in full of the shared `docs/superpowers/specs/2026-08-23-baituna-modules-design.md`. Background: `docs/baituna-prd.md` §4.0, §6 (endpoint table); `docs/baituna-erd.md` §6.1 (`mosques` entity), §6.3 (ownership rule).
 
 **Depends on:** Module 1 (Auth & RBAC — `requireAuth`, `requireRole`, `requireMosqueOwner`, `upgradeToMosqueAdmin`) and Module 7 (Audit Log — `withAudit`, `Transaction`, `createMosque`), both already implemented in this repo as of 2026-08-23.
 
