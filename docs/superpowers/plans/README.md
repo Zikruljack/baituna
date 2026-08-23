@@ -20,7 +20,7 @@ those pages use.
 | --- | --- | --- | --- | --- |
 | 1 | Auth & RBAC | `2026-08-23-module-1-auth-rbac.md` | — | ready |
 | 2 | Region Reference | `2026-08-23-module-2-region-reference.md` | — | ready |
-| 3 | Mosque Registration & Approval | not written yet | 1, 2, 7 | pending |
+| 3 | Mosque Registration & Approval | `2026-08-23-module-3-mosque-registration.md` | 1, 2, 7 | ready |
 | 4 | Mosque Search & Detail | `2026-08-23-module-4-mosque-search.md` | — | ready |
 | 5 | Person | not written yet | 1, 7 | pending |
 | 6 | Friday Assignment | not written yet | 1, 5, 7 | pending |
