@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Moon, Sun, Building2, BookOpen, Compass, LogIn, LogOut, PlusCircle } from 'lucide-vue-next';
+import { Moon, Sun, Building2, BookOpen, Compass, LogIn, LogOut, PlusCircle, Github } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 
 const colorMode = useColorMode();
@@ -68,6 +68,22 @@ function toggleTheme() {
             </template>
           </ClientOnly>
         </Button>
+
+        <!-- GitHub Repo Button -->
+        <a
+          href="https://github.com/Zikruljack/baituna"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="GitHub Repository Baituna"
+        >
+          <Button
+            variant="outline"
+            size="icon-sm"
+            class="rounded-lg border-border text-foreground hover:bg-card"
+          >
+            <Github class="size-4" />
+          </Button>
+        </a>
 
         <NuxtLink to="/#daftar-masjid" class="hidden sm:inline-flex">
           <Button variant="outline" size="sm" class="gap-1.5">
