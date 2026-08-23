@@ -39,6 +39,9 @@ import { Building2, ShieldCheck, MapPin } from 'lucide-vue-next';
             <li>
               <NuxtLink to="/#peta" class="hover:text-primary transition-colors">Peta Sebaran Masjid</NuxtLink>
             </li>
+            <li>
+              <a href="#" class="hover:text-primary transition-colors">Unduh Aplikasi (Play Store / App Store)</a>
+            </li>
           </ul>
         </div>
 
