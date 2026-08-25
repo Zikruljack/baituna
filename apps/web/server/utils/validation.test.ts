@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createMosqueSchema, updateMosqueSchema } from './validation';
+import { createMosqueSchema, searchQuerySchema, updateMosqueSchema } from './validation';
 
 const validBase = {
   name: 'Masjid Test',
@@ -58,5 +58,16 @@ describe('updateMosqueSchema', () => {
 
   it('accepts a partial update with only a valid longitude', () => {
     expect(updateMosqueSchema.safeParse({ longitude: '95.3200000' }).success).toBe(true);
+  });
+});
+
+describe('searchQuerySchema', () => {
+  it('trims a non-empty keyword', () => {
+    expect(searchQuerySchema.parse({ q: '  baiturrahman  ' })).toEqual({ q: 'baiturrahman' });
+  });
+
+  it('rejects blank and oversized keywords', () => {
+    expect(searchQuerySchema.safeParse({ q: '   ' }).success).toBe(false);
+    expect(searchQuerySchema.safeParse({ q: 'a'.repeat(201) }).success).toBe(false);
   });
 });

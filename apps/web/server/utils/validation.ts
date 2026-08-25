@@ -80,6 +80,10 @@ export const nearbyQuerySchema = z.object({
   radius: z.coerce.number().positive().max(50).default(5),
 });
 
+export const searchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(200),
+});
+
 export async function parseBody<T>(event: Parameters<typeof readBody>[0], schema: ZodType<T>) {
   return await readValidatedBody(event, (body) => schema.parse(body));
 }

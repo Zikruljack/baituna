@@ -6,10 +6,66 @@ export const openApiDocument = {
     description: 'Scaffold contract for the Baituna MVP API.',
   },
   paths: {
-    '/mosques/nearby': { get: { summary: 'Find nearby approved mosques' } },
-    '/mosques/search': { get: { summary: 'Search approved mosques' } },
+    '/mosques/nearby': {
+      get: {
+        summary: 'Find nearby approved mosques',
+        parameters: [
+          {
+            name: 'lat',
+            in: 'query',
+            required: true,
+            schema: { type: 'number' },
+          },
+          {
+            name: 'lng',
+            in: 'query',
+            required: true,
+            schema: { type: 'number' },
+          },
+          {
+            name: 'radius',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', default: 5 },
+          },
+        ],
+        responses: {
+          200: { description: 'Mosques sorted by distance ascending' },
+        },
+      },
+    },
+    '/mosques/search': {
+      get: {
+        summary: 'Search approved mosques by name or address',
+        parameters: [
+          {
+            name: 'q',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: { description: 'Mosques matching the keyword' },
+        },
+      },
+    },
     '/mosques/{id}': {
-      get: { summary: 'Get mosque detail' },
+      get: {
+        summary: 'Get mosque detail',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Mosque detail' },
+          404: { description: 'Mosque not found, not approved, or deleted' },
+        },
+      },
       patch: {
         summary: 'Edit an approved mosque (owner only)',
         security: [{ bearerAuth: [] }],
