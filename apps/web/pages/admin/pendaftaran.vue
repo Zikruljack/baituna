@@ -15,7 +15,11 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { PendingMosque } from '~/types/api';
 
-definePageMeta({ middleware: ['auth', 'require-role'], requiredRoles: ['super_admin'] });
+definePageMeta({
+  middleware: ['auth', 'require-role'],
+  requiredRoles: ['super_admin'],
+  layout: 'admin',
+});
 
 const { listPendingMosques, approveMosque, rejectMosque } = useMosqueRegistration();
 
