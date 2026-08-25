@@ -12,7 +12,6 @@ import {
   LogOut,
   Moon,
   PlusCircle,
-  ShieldAlert,
   Sun,
   User as UserIcon,
 } from 'lucide-vue-next';
@@ -40,6 +39,12 @@ const roleBadgeLabel = computed(() => {
   if (user.value.role === 'super_admin') return 'Super Admin';
   if (user.value.role === 'mosque_admin') return 'Pengelola DKM';
   return 'Jamaah';
+});
+
+const dashboardTarget = computed(() => {
+  if (user.value?.role === 'super_admin') return '/admin/pendaftaran';
+  if (user.value?.role === 'mosque_admin') return '/dashboard';
+  return null;
 });
 </script>
 
@@ -145,7 +150,7 @@ const roleBadgeLabel = computed(() => {
 
               <DropdownMenuSeparator />
 
-              <NuxtLink to="/admin">
+              <NuxtLink v-if="dashboardTarget" :to="dashboardTarget">
                 <DropdownMenuItem class="cursor-pointer gap-2">
                   <LayoutDashboard class="size-4 text-primary" />
                   <span>Dashboard</span>
@@ -156,13 +161,6 @@ const roleBadgeLabel = computed(() => {
                 <DropdownMenuItem class="cursor-pointer gap-2">
                   <ClipboardList class="size-4 text-muted-foreground" />
                   <span>Pendaftaran Saya</span>
-                </DropdownMenuItem>
-              </NuxtLink>
-
-              <NuxtLink v-if="user.role === 'super_admin'" to="/admin/pendaftaran">
-                <DropdownMenuItem class="cursor-pointer gap-2">
-                  <ShieldAlert class="size-4 text-amber-500" />
-                  <span>Antrean Persetujuan</span>
                 </DropdownMenuItem>
               </NuxtLink>
 
