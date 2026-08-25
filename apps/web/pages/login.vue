@@ -7,14 +7,22 @@ const password = ref('');
 const errorMessage = ref('');
 const isSubmitting = ref(false);
 
-const { login, loginWithGoogle } = useAuth();
+const route = useRoute();
+const { login, loginWithGoogle, user } = useAuth();
 
 async function onSubmit() {
   errorMessage.value = '';
   isSubmitting.value = true;
   try {
     await login(email.value, password.value);
-    await navigateTo('/');
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
+    const target =
+      user.value?.role === 'super_admin'
+        ? '/admin/pendaftaran'
+        : user.value?.role === 'mosque_admin'
+          ? '/dashboard'
+          : redirect;
+    await navigateTo(target);
   } catch {
     errorMessage.value = 'Email atau kata sandi salah.';
   } finally {

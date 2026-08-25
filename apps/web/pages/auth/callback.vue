@@ -3,7 +3,7 @@
 import type { AuthResponse } from '~/lib/auth-types';
 
 const route = useRoute();
-const { setSession } = useAuth();
+const { setSession, user } = useAuth();
 const errorMessage = ref('');
 
 onMounted(async () => {
@@ -20,7 +20,13 @@ onMounted(async () => {
       query: { code, state },
     });
     setSession(auth);
-    await navigateTo('/');
+    const target =
+      user.value?.role === 'super_admin'
+        ? '/admin/pendaftaran'
+        : user.value?.role === 'mosque_admin'
+          ? '/dashboard'
+          : '/';
+    await navigateTo(target);
   } catch {
     errorMessage.value = 'Gagal masuk dengan Google. Silakan coba lagi.';
   }
