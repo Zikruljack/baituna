@@ -18,7 +18,8 @@ function toIsoDate(date: Date): string {
 
 /** Parses a `YYYY-MM-DD` string as a UTC midnight Date (no time component). */
 function parseIsoDate(isoDate: string): Date {
-  const [year, month, day] = isoDate.split('-').map(Number);
+  const parts = isoDate.split('-').map(Number);
+  const [year, month, day] = parts as [number, number, number];
   return new Date(Date.UTC(year, month - 1, day));
 }
 
