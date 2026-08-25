@@ -86,3 +86,39 @@ export async function updatePerson(
     return { id: updated.id, name: updated.name, phone: updated.phone };
   });
 }
+
+export async function deletePerson(
+  db: Database,
+  mosqueId: string,
+  personId: string,
+  actorId: string,
+): Promise<{ id: string }> {
+  return await db.transaction(async (tx) => {
+    const rows = await tx
+      .select()
+      .from(people)
+      .where(and(eq(people.id, personId), eq(people.mosqueId, mosqueId), isNull(people.deletedAt)))
+      .limit(1);
+
+    const person = rows[0];
+    if (!person) {
+      throw createError({ statusCode: 404, statusMessage: 'Person not found' });
+    }
+
+    const deletedAt = new Date();
+    await tx.update(people).set({ deletedAt, deletedBy: actorId }).where(eq(people.id, personId));
+
+    await withAudit(tx, {
+      table: people,
+      tableName: 'people',
+      recordId: personId,
+      action: 'DELETE',
+      actorId,
+      oldData: { name: person.name, phone: person.phone },
+      newData: null,
+      currentHistory: person.history as unknown[],
+    });
+
+    return { id: personId };
+  });
+}

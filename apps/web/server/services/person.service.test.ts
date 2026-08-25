@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import * as schema from '../../drizzle/schema';
 import { cities, mosques, people, provinces, users } from '../../drizzle/schema';
-import { createPerson, listActivePeople, updatePerson } from './person.service';
+import { createPerson, deletePerson, listActivePeople, updatePerson } from './person.service';
 
 const RUN_DB_TESTS = Boolean(process.env.DATABASE_URL);
 
@@ -128,6 +128,45 @@ describe.runIf(RUN_DB_TESTS)('person.service', () => {
       await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, created.id));
 
       await expect(updatePerson(db, mosque.id, created.id, { name: 'Too Late' }, actor.id)).rejects.toThrow();
+    });
+  });
+
+  describe('deletePerson', () => {
+    it('soft-deletes: sets deletedAt/deletedBy and excludes the row from listActivePeople', async () => {
+      const mosque = await seedMosque();
+      const actor1 = await seedUser();
+      const actor2 = await seedUser();
+      const created = await createPerson(db, mosque.id, { name: 'To Delete', phone: null }, actor1.id);
+
+      await deletePerson(db, mosque.id, created.id, actor2.id);
+
+      const [row] = await db.select().from(people).where(eq(people.id, created.id));
+      expect(row?.deletedAt).not.toBeNull();
+      expect(row?.deletedBy).toBe(actor2.id);
+      expect((row?.history as unknown[]).length).toBe(2);
+
+      const list = await listActivePeople(db, mosque.id);
+      expect(list.find((p) => p.id === created.id)).toBeUndefined();
+    });
+
+    it('does not hard-delete the row — it remains queryable directly', async () => {
+      const mosque = await seedMosque();
+      const actor = await seedUser();
+      const created = await createPerson(db, mosque.id, { name: 'Still There', phone: null }, actor.id);
+      await deletePerson(db, mosque.id, created.id, actor.id);
+
+      const [row] = await db.select().from(people).where(eq(people.id, created.id));
+      expect(row).toBeDefined();
+      expect(row?.name).toBe('Still There');
+    });
+
+    it('404s when already deleted', async () => {
+      const mosque = await seedMosque();
+      const actor = await seedUser();
+      const created = await createPerson(db, mosque.id, { name: 'Double Delete', phone: null }, actor.id);
+      await deletePerson(db, mosque.id, created.id, actor.id);
+
+      await expect(deletePerson(db, mosque.id, created.id, actor.id)).rejects.toThrow();
     });
   });
 });
