@@ -28,7 +28,7 @@ export interface CityOption extends RegionOption {
 // Spec: docs/superpowers/specs/2026-08-23-module-3-mosque-registration.md
 // ---------------------------------------------------------------------------
 
-/** Body for POST /api/mosques. latitude/longitude are strings, not numbers — see apps/web/server/utils/validation.ts latitudeSchema/longitudeSchema. */
+/** Body for POST /api/mosques. latitude/longitude are strings, not numbers — see apps/web/server/utils/validation.ts latitudeSchema/longitudeSchema. submitterName/email/password are required only when the caller has no auth token (public registration); omit all three when already logged in. */
 export interface MosqueRegistrationInput {
   name: string;
   address: string;
@@ -36,6 +36,9 @@ export interface MosqueRegistrationInput {
   longitude: string;
   cityId: string;
   provinceId: string;
+  submitterName?: string;
+  email?: string;
+  password?: string;
 }
 
 /** One fuzzy-duplicate candidate returned in POST /api/mosques's 201 response. Informational only — never blocks submission. */
@@ -47,12 +50,14 @@ export interface DuplicateWarning {
   nameSimilarity: number;
 }
 
-/** Full 201 response body from POST /api/mosques. */
+/** Full 201 response body from POST /api/mosques. token/user are present only for a brand-new public registration (no prior auth token on the request) — mirrors AuthResponse shape from lib/auth-types.ts so it can be passed straight to useAuth().setSession(). */
 export interface CreatedMosqueRegistration {
   id: string;
   name: string;
   status: 'pending';
   duplicateWarning: DuplicateWarning[];
+  token?: string;
+  user?: { id: string; name: string; email: string; role: 'public_user' };
 }
 
 export type MosqueStatus = 'pending' | 'approved' | 'rejected';
@@ -183,4 +188,17 @@ export interface UpdateAssignmentInput {
   khatibPersonId?: string | null;
   imamPersonId?: string | null;
   muazzinPersonId?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// MVP v2 — Admin Dashboard & Public Registration
+// Spec: docs/superpowers/specs/2026-08-25-baituna-mvp-v2-design.md
+// ---------------------------------------------------------------------------
+
+/** Mirrors OwnedMosque in apps/web/server/services/mosque.service.ts. Response of GET /api/mosques/my-mosque; null when the caller (a mosque_admin) owns no mosque. */
+export interface MyMosque {
+  id: string;
+  name: string;
+  address: string;
+  fridayPrayerTime: string | null;
 }
