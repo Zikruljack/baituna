@@ -1,0 +1,1 @@
+CREATE INDEX "mosques_name_trgm_idx" ON "mosques" USING gin ("name" gin_trgm_ops) WHERE "mosques"."deleted_at" IS NULL;

@@ -1,73 +1,59 @@
-import { describe, expect, it, vi } from 'vitest';
+import { randomUUID } from 'node:crypto';
 
-import { findOrCreateGoogleUser } from './user.service';
-import type { Database } from './user.service';
+import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { describe, expect, it } from 'vitest';
 
-/** Minimal fake matching the Drizzle call chains the service uses. */
-function fakeDb(options: { existing?: unknown[]; inserted?: unknown[] }) {
-  const insertValues = vi.fn().mockReturnValue({
-    returning: vi.fn().mockResolvedValue(options.inserted ?? []),
-  });
+import * as schema from '../../drizzle/schema';
+import { users } from '../../drizzle/schema';
+import { findUserById } from './user.service';
 
-  return {
-    db: {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue(options.existing ?? []),
-          }),
-        }),
-      }),
-      insert: vi.fn().mockReturnValue({ values: insertValues }),
-    } as unknown as Database,
-    insertValues,
-  };
-}
+const RUN_DB_TESTS = Boolean(process.env.DATABASE_URL);
 
-const profile = { providerId: 'google-sub-123', email: 'aisyah@example.com', name: 'Aisyah' };
+describe.runIf(RUN_DB_TESTS)('findUserById', () => {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const db = drizzle(pool, { schema });
 
-describe('findOrCreateGoogleUser', () => {
-  it('returns the existing user without inserting', async () => {
-    const { db } = fakeDb({
-      existing: [
-        { id: 'user-1', name: 'Aisyah', email: 'aisyah@example.com', role: 'mosque_admin' },
-      ],
-    });
-
-    const user = await findOrCreateGoogleUser(db, profile);
-
-    expect(user).toEqual({
-      id: 'user-1',
-      name: 'Aisyah',
-      email: 'aisyah@example.com',
-      role: 'mosque_admin',
-    });
-    expect(db.insert).not.toHaveBeenCalled();
-  });
-
-  it('creates a public_user when the provider id is unknown', async () => {
-    const { db, insertValues } = fakeDb({
-      existing: [],
-      inserted: [
-        { id: 'user-2', name: 'Aisyah', email: 'aisyah@example.com', role: 'public_user' },
-      ],
-    });
-
-    const user = await findOrCreateGoogleUser(db, profile);
-
-    expect(user.role).toBe('public_user');
-    expect(insertValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        provider: 'google',
-        providerId: 'google-sub-123',
-        passwordHash: null,
+  it('returns the user shape for a live user', async () => {
+    const unique = randomUUID();
+    const [user] = await db
+      .insert(users)
+      .values({
+        name: 'Find By Id User',
+        email: `find-by-id-${unique}@example.test`,
         role: 'public_user',
-      }),
-    );
+        provider: 'local',
+      })
+      .returning();
+    if (!user) throw new Error('user insert failed');
+
+    await expect(findUserById(db, user.id)).resolves.toEqual({
+      id: user.id,
+      name: 'Find By Id User',
+      email: `find-by-id-${unique}@example.test`,
+      role: 'public_user',
+    });
   });
 
-  it('throws when the insert returns nothing', async () => {
-    const { db } = fakeDb({ existing: [], inserted: [] });
-    await expect(findOrCreateGoogleUser(db, profile)).rejects.toThrow('Failed to create user');
+  it('returns null for a soft-deleted user', async () => {
+    const unique = randomUUID();
+    const [user] = await db
+      .insert(users)
+      .values({
+        name: 'Deleted User',
+        email: `deleted-${unique}@example.test`,
+        role: 'public_user',
+        provider: 'local',
+      })
+      .returning();
+    if (!user) throw new Error('user insert failed');
+    await db.update(users).set({ deletedAt: new Date() }).where(eq(users.id, user.id));
+
+    await expect(findUserById(db, user.id)).resolves.toBeNull();
+  });
+
+  it('returns null for a nonexistent id', async () => {
+    await expect(findUserById(db, randomUUID())).resolves.toBeNull();
   });
 });

@@ -171,6 +171,40 @@ describe.runIf(RUN_DB_TESTS)('createMosque', () => {
 
       expect(candidates).toEqual([]);
     });
+
+    it('flags an exact-coordinate duplicate without the acos() range error', async () => {
+      const timestamp = Date.now();
+      const [province] = await db
+        .insert(provinces)
+        .values({ name: `Exact Dup Prov ${timestamp}` })
+        .returning();
+      if (!province) throw new Error('province insert failed');
+      const [city] = await db
+        .insert(cities)
+        .values({ name: `Exact Dup City ${timestamp}`, provinceId: province.id })
+        .returning();
+      if (!city) throw new Error('city insert failed');
+
+      await db.insert(mosques).values({
+        name: 'Masjid Exact Duplicate',
+        address: 'Jl. Exact No. 1',
+        latitude: '5.5500000',
+        longitude: '95.3200000',
+        cityId: city.id,
+        provinceId: province.id,
+        status: 'pending',
+      });
+
+      const candidates = await checkForDuplicate(db, {
+        name: 'Masjid Exact Duplicate',
+        latitude: '5.5500000',
+        longitude: '95.3200000',
+      });
+
+      expect(candidates.length).toBeGreaterThan(0);
+      expect(candidates[0]?.name).toBe('Masjid Exact Duplicate');
+      expect(candidates[0]?.distanceMeters).toBeCloseTo(0, 5);
+    });
   });
 
   describe('approveMosque', () => {
@@ -778,6 +812,35 @@ describe.runIf(RUN_DB_TESTS)('createMosque', () => {
         actorId: submitter.id,
         oldData: { name: 'Masjid Edit Test', address: 'Jl. Lama' },
         newData: { name: 'Masjid Edit Baru', address: 'Jl. Baru No. 2' },
+      });
+    });
+
+    it('omits unchanged fields from the audit log even when submitted', async () => {
+      const { actor, mosque } = await createModerationFixture('Unchanged Field');
+      await approveMosque(db, mosque.id, actor.id);
+
+      await expect(
+        updateApprovedMosque(
+          db,
+          mosque.id,
+          { name: 'Unchanged Field Mosque', address: 'Changed Address' },
+          actor.id,
+        ),
+      ).resolves.toEqual({ id: mosque.id });
+
+      const [row] = await db.select().from(mosques).where(eq(mosques.id, mosque.id));
+      expect((row?.history as Array<{ changes: Record<string, unknown> }>).at(-1)?.changes).toEqual(
+        {
+          address: { old: 'Unchanged Field Address', new: 'Changed Address' },
+        },
+      );
+
+      const logs = await db.select().from(auditLogs).where(eq(auditLogs.recordId, mosque.id));
+      expect(logs.at(-1)).toMatchObject({
+        action: 'UPDATE',
+        actorId: actor.id,
+        oldData: { address: 'Unchanged Field Address' },
+        newData: { address: 'Changed Address' },
       });
     });
 

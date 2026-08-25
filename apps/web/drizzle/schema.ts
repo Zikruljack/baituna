@@ -3,6 +3,7 @@ import {
   boolean,
   date,
   decimal,
+  index,
   jsonb,
   pgEnum,
   pgTable,
@@ -75,23 +76,31 @@ export const users = pgTable(
   (table) => [unique('users_provider_key').on(table.provider, table.providerId)],
 );
 
-export const mosques = pgTable('mosques', {
-  ...createAuditColumns(),
-  name: text('name').notNull(),
-  address: text('address').notNull(),
-  latitude: decimal('latitude', { precision: 10, scale: 7 }).notNull(),
-  longitude: decimal('longitude', { precision: 10, scale: 7 }).notNull(),
-  cityId: uuid('city_id')
-    .notNull()
-    .references(() => cities.id),
-  provinceId: uuid('province_id')
-    .notNull()
-    .references(() => provinces.id),
-  mukimId: uuid('mukim_id').references(() => mukims.id),
-  status: mosqueStatus('status').notNull().default('pending'),
-  adminUserId: uuid('admin_user_id').references(() => users.id),
-  photoUrl: text('photo_url'),
-});
+export const mosques = pgTable(
+  'mosques',
+  {
+    ...createAuditColumns(),
+    name: text('name').notNull(),
+    address: text('address').notNull(),
+    latitude: decimal('latitude', { precision: 10, scale: 7 }).notNull(),
+    longitude: decimal('longitude', { precision: 10, scale: 7 }).notNull(),
+    cityId: uuid('city_id')
+      .notNull()
+      .references(() => cities.id),
+    provinceId: uuid('province_id')
+      .notNull()
+      .references(() => provinces.id),
+    mukimId: uuid('mukim_id').references(() => mukims.id),
+    status: mosqueStatus('status').notNull().default('pending'),
+    adminUserId: uuid('admin_user_id').references(() => users.id),
+    photoUrl: text('photo_url'),
+  },
+  (table) => [
+    index('mosques_name_trgm_idx')
+      .using('gin', sql`${table.name} gin_trgm_ops`)
+      .where(sql`${table.deletedAt} IS NULL`),
+  ],
+);
 
 export const people = pgTable('people', {
   ...createAuditColumns(),

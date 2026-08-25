@@ -33,6 +33,20 @@ export async function findUserByEmail(db: Database, email: string) {
   return rows[0] ?? null;
 }
 
+/** Looks up a live user by id, regardless of auth provider. */
+export async function findUserById(db: Database, id: string): Promise<AuthUser | null> {
+  const rows = await db
+    .select()
+    .from(users)
+    .where(and(eq(users.id, id), isNull(users.deletedAt)))
+    .limit(1);
+
+  const found = rows[0];
+  if (!found) return null;
+
+  return { id: found.id, name: found.name, email: found.email, role: found.role };
+}
+
 /** Resolves a Google profile, creating a public user on its first sign-in. */
 export async function findOrCreateGoogleUser(
   db: Database,

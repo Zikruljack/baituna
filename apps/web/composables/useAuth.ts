@@ -41,5 +41,18 @@ export function useAuth() {
     user.value = null;
   }
 
-  return { user, isAuthenticated, setSession, login, loginWithGoogle, logout };
+  async function init() {
+    if (user.value || !token.value) return;
+
+    try {
+      user.value = await $fetch<AuthUser>('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token.value}` },
+      });
+    } catch {
+      token.value = null;
+      user.value = null;
+    }
+  }
+
+  return { user, isAuthenticated, setSession, login, loginWithGoogle, logout, init };
 }

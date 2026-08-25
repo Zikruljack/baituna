@@ -1,9 +1,10 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, gte, isNull, lte, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import type * as schema from '../../drizzle/schema';
 import { mosques } from '../../drizzle/schema';
 import { withAudit } from './audit.service';
+import type { Transaction } from './audit.service';
 import { upgradeToMosqueAdmin } from './user.service';
 
 export type Database = NodePgDatabase<typeof schema>;
@@ -65,6 +66,7 @@ export interface MySubmission {
 
 const DUPLICATE_DISTANCE_METERS = 100;
 const DUPLICATE_NAME_SIMILARITY_THRESHOLD = 0.4;
+const METERS_PER_DEGREE_LATITUDE = 111_320;
 
 /**
  * Registers a mosque in `pending` status. Approval, rejection, and
@@ -118,11 +120,45 @@ export async function checkForDuplicate(
   db: Database,
   input: { name: string; latitude: string; longitude: string },
 ): Promise<DuplicateCandidate[]> {
+  const latitude = Number.parseFloat(input.latitude);
+  const longitude = Number.parseFloat(input.longitude);
+  const latitudeDelta = DUPLICATE_DISTANCE_METERS / METERS_PER_DEGREE_LATITUDE;
+  const longitudeDelta = Math.min(
+    180,
+    DUPLICATE_DISTANCE_METERS /
+      (METERS_PER_DEGREE_LATITUDE *
+        Math.max(Math.abs(Math.cos((latitude * Math.PI) / 180)), 1e-12)),
+  );
+  const latitudeBounds = and(
+    gte(mosques.latitude, String(Math.max(-90, latitude - latitudeDelta))),
+    lte(mosques.latitude, String(Math.min(90, latitude + latitudeDelta))),
+  );
+  const longitudeMin = longitude - longitudeDelta;
+  const longitudeMax = longitude + longitudeDelta;
+  const longitudeBounds =
+    longitudeDelta === 180
+      ? undefined
+      : longitudeMin < -180
+        ? or(
+            lte(mosques.longitude, String(longitudeMax)),
+            gte(mosques.longitude, String(longitudeMin + 360)),
+          )
+        : longitudeMax > 180
+          ? or(
+              gte(mosques.longitude, String(longitudeMin)),
+              lte(mosques.longitude, String(longitudeMax - 360)),
+            )
+          : and(
+              gte(mosques.longitude, String(longitudeMin)),
+              lte(mosques.longitude, String(longitudeMax)),
+            );
   const distanceExpr = sql<number>`
     6371000 * acos(
-      cos(radians(${input.latitude}::double precision)) * cos(radians(${mosques.latitude}::double precision)) *
-      cos(radians(${mosques.longitude}::double precision) - radians(${input.longitude}::double precision)) +
-      sin(radians(${input.latitude}::double precision)) * sin(radians(${mosques.latitude}::double precision))
+      GREATEST(-1, LEAST(1,
+        cos(radians(${input.latitude}::double precision)) * cos(radians(${mosques.latitude}::double precision)) *
+        cos(radians(${mosques.longitude}::double precision) - radians(${input.longitude}::double precision)) +
+        sin(radians(${input.latitude}::double precision)) * sin(radians(${mosques.latitude}::double precision))
+      ))
     )
   `;
   const similarityExpr = sql<number>`similarity(${mosques.name}, ${input.name})`;
@@ -139,7 +175,10 @@ export async function checkForDuplicate(
     .where(
       and(
         isNull(mosques.deletedAt),
+        latitudeBounds,
+        longitudeBounds,
         sql`${distanceExpr} < ${DUPLICATE_DISTANCE_METERS}`,
+        sql`${mosques.name} % ${input.name}`,
         sql`${similarityExpr} > ${DUPLICATE_NAME_SIMILARITY_THRESHOLD}`,
       ),
     )
@@ -163,6 +202,29 @@ export async function listPendingMosques(db: Database): Promise<PendingMosqueSum
     .orderBy(mosques.createdAt);
 }
 
+async function lockRequiredStatusMosque(
+  tx: Transaction,
+  mosqueId: string,
+  requiredStatus: 'pending' | 'approved',
+  wrongStatusMessage: string,
+) {
+  const [mosque] = await tx
+    .select()
+    .from(mosques)
+    .where(and(eq(mosques.id, mosqueId), isNull(mosques.deletedAt)))
+    .limit(1)
+    .for('update');
+
+  if (!mosque) {
+    throw createError({ statusCode: 404, statusMessage: 'Mosque not found' });
+  }
+  if (mosque.status !== requiredStatus) {
+    throw createError({ statusCode: 409, statusMessage: wrongStatusMessage });
+  }
+
+  return mosque;
+}
+
 /**
  * Approves one pending mosque and promotes only its submitter. The mosque,
  * user role, row history, and audit log are committed or rolled back together.
@@ -173,19 +235,12 @@ export async function approveMosque(
   actorId: string,
 ): Promise<ApprovedMosque> {
   return await db.transaction(async (tx) => {
-    const [mosque] = await tx
-      .select()
-      .from(mosques)
-      .where(and(eq(mosques.id, mosqueId), isNull(mosques.deletedAt)))
-      .limit(1)
-      .for('update');
-
-    if (!mosque) {
-      throw createError({ statusCode: 404, statusMessage: 'Mosque not found' });
-    }
-    if (mosque.status !== 'pending') {
-      throw createError({ statusCode: 409, statusMessage: 'Mosque is not pending approval' });
-    }
+    const mosque = await lockRequiredStatusMosque(
+      tx,
+      mosqueId,
+      'pending',
+      'Mosque is not pending approval',
+    );
     if (!mosque.createdBy) {
       throw createError({ statusCode: 422, statusMessage: 'Mosque has no submitter to promote' });
     }
@@ -221,19 +276,12 @@ export async function rejectMosque(
   actorId: string,
 ): Promise<RejectedMosque> {
   return await db.transaction(async (tx) => {
-    const [mosque] = await tx
-      .select()
-      .from(mosques)
-      .where(and(eq(mosques.id, mosqueId), isNull(mosques.deletedAt)))
-      .limit(1)
-      .for('update');
-
-    if (!mosque) {
-      throw createError({ statusCode: 404, statusMessage: 'Mosque not found' });
-    }
-    if (mosque.status !== 'pending') {
-      throw createError({ statusCode: 409, statusMessage: 'Mosque is not pending approval' });
-    }
+    const mosque = await lockRequiredStatusMosque(
+      tx,
+      mosqueId,
+      'pending',
+      'Mosque is not pending approval',
+    );
 
     await tx.update(mosques).set({ status: 'rejected' }).where(eq(mosques.id, mosqueId));
 
@@ -260,35 +308,23 @@ export async function updateApprovedMosque(
   actorId: string,
 ): Promise<{ id: string }> {
   return await db.transaction(async (tx) => {
-    const [mosque] = await tx
-      .select()
-      .from(mosques)
-      .where(and(eq(mosques.id, mosqueId), isNull(mosques.deletedAt)))
-      .limit(1)
-      .for('update');
-
-    if (!mosque) {
-      throw createError({ statusCode: 404, statusMessage: 'Mosque not found' });
-    }
-    if (mosque.status !== 'approved') {
-      throw createError({
-        statusCode: 409,
-        statusMessage: 'Mosque must be approved before editing',
-      });
-    }
+    const mosque = await lockRequiredStatusMosque(
+      tx,
+      mosqueId,
+      'approved',
+      'Mosque must be approved before editing',
+    );
 
     await tx
       .update(mosques)
       .set(updates)
       .where(and(eq(mosques.id, mosqueId), isNull(mosques.deletedAt)));
 
-    const oldData = Object.fromEntries(
-      (Object.keys(updates) as Array<keyof UpdateApprovedMosqueInput>).map((key) => [
-        key,
-        mosque[key],
-      ]),
+    const changedKeys = (Object.keys(updates) as Array<keyof UpdateApprovedMosqueInput>).filter(
+      (key) => JSON.stringify(mosque[key]) !== JSON.stringify(updates[key]),
     );
-    const newData: Record<string, unknown> = { ...updates };
+    const oldData = Object.fromEntries(changedKeys.map((key) => [key, mosque[key]]));
+    const newData = Object.fromEntries(changedKeys.map((key) => [key, updates[key]]));
 
     await withAudit(tx, {
       table: mosques,
