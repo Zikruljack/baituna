@@ -919,6 +919,38 @@ describe.runIf(RUN_DB_TESTS)('createMosque', () => {
       });
     });
 
+    it('updates fridayPrayerTime on an approved mosque', async () => {
+      const timestamp = Date.now();
+      const [province] = await db.insert(provinces).values({ name: `PrayerProv ${timestamp}` }).returning();
+      if (!province) throw new Error('province insert failed');
+      const [city] = await db.insert(cities).values({ name: `PrayerCity ${timestamp}`, provinceId: province.id }).returning();
+      if (!city) throw new Error('city insert failed');
+      const unique = randomUUID();
+      const [actor] = await db
+        .insert(users)
+        .values({ name: 'Actor', email: `prayer-actor-${unique}@example.test`, role: 'super_admin', provider: 'local' })
+        .returning();
+      if (!actor) throw new Error('actor insert failed');
+      const [mosque] = await db
+        .insert(mosques)
+        .values({
+          name: 'Masjid Prayer Time',
+          address: 'Jl. Prayer No. 1',
+          latitude: '5.5500000',
+          longitude: '95.3200000',
+          cityId: city.id,
+          provinceId: province.id,
+          status: 'approved',
+        })
+        .returning();
+      if (!mosque) throw new Error('mosque insert failed');
+
+      await updateApprovedMosque(db, mosque.id, { fridayPrayerTime: '12:30' }, actor.id);
+
+      const [updated] = await db.select().from(mosques).where(eq(mosques.id, mosque.id));
+      expect(updated?.fridayPrayerTime).toBe('12:30');
+    });
+
     it('omits unchanged fields from the audit log even when submitted', async () => {
       const { actor, mosque } = await createModerationFixture('Unchanged Field');
       await approveMosque(db, mosque.id, actor.id);

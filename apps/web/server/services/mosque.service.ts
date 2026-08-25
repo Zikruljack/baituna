@@ -60,6 +60,7 @@ export interface UpdateApprovedMosqueInput {
   address?: string;
   latitude?: string;
   longitude?: string;
+  fridayPrayerTime?: string;
 }
 
 export interface MySubmission {
