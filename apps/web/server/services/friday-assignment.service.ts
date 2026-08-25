@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import type * as schema from '../../drizzle/schema';
@@ -220,5 +220,45 @@ export async function getCurrentAssignment(
     khatibPersonId: row.khatibPersonId,
     imamPersonId: row.imamPersonId,
     muazzinPersonId: row.muazzinPersonId,
+  };
+}
+
+export interface PaginatedAssignments {
+  items: AssignmentRecord[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export async function listAssignmentHistory(
+  db: Database,
+  mosqueId: string,
+  params: { page: number; pageSize: number },
+): Promise<PaginatedAssignments> {
+  const whereClause = and(eq(fridayAssignments.mosqueId, mosqueId), isNull(fridayAssignments.deletedAt));
+
+  const [totalRow] = await db.select({ value: count() }).from(fridayAssignments).where(whereClause);
+  const total = totalRow?.value ?? 0;
+
+  const rows = await db
+    .select()
+    .from(fridayAssignments)
+    .where(whereClause)
+    .orderBy(desc(fridayAssignments.assignmentDate))
+    .limit(params.pageSize)
+    .offset((params.page - 1) * params.pageSize);
+
+  return {
+    items: rows.map((row) => ({
+      id: row.id,
+      mosqueId: row.mosqueId,
+      assignmentDate: row.assignmentDate,
+      khatibPersonId: row.khatibPersonId,
+      imamPersonId: row.imamPersonId,
+      muazzinPersonId: row.muazzinPersonId,
+    })),
+    page: params.page,
+    pageSize: params.pageSize,
+    total,
   };
 }

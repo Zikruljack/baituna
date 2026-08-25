@@ -69,6 +69,11 @@ export const updateAssignmentSchema = z
   })
   .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
 
+export const historyQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 export const nearbyQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),

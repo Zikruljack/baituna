@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import * as schema from '../../drizzle/schema';
 import { cities, fridayAssignments, mosques, people, provinces, users } from '../../drizzle/schema';
-import { createAssignment, getCurrentAssignment, updateAssignment } from './friday-assignment.service';
+import { createAssignment, getCurrentAssignment, listAssignmentHistory, updateAssignment } from './friday-assignment.service';
 
 const RUN_DB_TESTS = Boolean(process.env.DATABASE_URL);
 
@@ -183,6 +183,37 @@ describe.runIf(RUN_DB_TESTS)('friday-assignment.service', () => {
         expect(result.assignmentDate).toBe('2099-02-06');
         expect(result.khatibPersonId).toBe(person.id);
       }
+    });
+  });
+
+  describe('listAssignmentHistory', () => {
+    it('returns assignments newest-first with pagination metadata', async () => {
+      const { mosque, person } = await seedMosqueWithPerson();
+      const actor = await seedUser();
+      await createAssignment(db, mosque.id, { assignmentDate: '2099-03-06', khatibPersonId: person.id, imamPersonId: null, muazzinPersonId: null }, actor.id);
+      await createAssignment(db, mosque.id, { assignmentDate: '2099-03-13', khatibPersonId: person.id, imamPersonId: null, muazzinPersonId: null }, actor.id);
+
+      const result = await listAssignmentHistory(db, mosque.id, { page: 1, pageSize: 20 });
+
+      expect(result.total).toBeGreaterThanOrEqual(2);
+      const dates = result.items.map((a) => a.assignmentDate);
+      expect(dates.indexOf('2099-03-13')).toBeLessThan(dates.indexOf('2099-03-06'));
+      expect(result.page).toBe(1);
+      expect(result.pageSize).toBe(20);
+    });
+
+    it('respects page size and page number', async () => {
+      const { mosque, person } = await seedMosqueWithPerson();
+      const actor = await seedUser();
+      for (const date of ['2099-04-03', '2099-04-10', '2099-04-17']) {
+        await createAssignment(db, mosque.id, { assignmentDate: date, khatibPersonId: person.id, imamPersonId: null, muazzinPersonId: null }, actor.id);
+      }
+
+      const firstPage = await listAssignmentHistory(db, mosque.id, { page: 1, pageSize: 2 });
+      expect(firstPage.items).toHaveLength(2);
+
+      const secondPage = await listAssignmentHistory(db, mosque.id, { page: 2, pageSize: 2 });
+      expect(secondPage.items.length).toBeGreaterThanOrEqual(1);
     });
   });
 });
