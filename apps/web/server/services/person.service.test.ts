@@ -1,11 +1,13 @@
+import { randomUUID } from 'node:crypto';
+
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { describe, expect, it } from 'vitest';
 
 import * as schema from '../../drizzle/schema';
-import { cities, mosques, people, provinces } from '../../drizzle/schema';
-import { listActivePeople } from './person.service';
+import { cities, mosques, people, provinces, users } from '../../drizzle/schema';
+import { createPerson, listActivePeople } from './person.service';
 
 const RUN_DB_TESTS = Boolean(process.env.DATABASE_URL);
 
@@ -32,6 +34,21 @@ describe.runIf(RUN_DB_TESTS)('person.service', () => {
       .returning();
     if (!mosque) throw new Error('mosque insert failed');
     return mosque;
+  }
+
+  async function seedUser() {
+    const unique = randomUUID();
+    const [user] = await db
+      .insert(users)
+      .values({
+        name: `Actor ${unique}`,
+        email: `actor-${unique}@example.test`,
+        role: 'mosque_admin',
+        provider: 'local',
+      })
+      .returning();
+    if (!user) throw new Error('user insert failed');
+    return user;
   }
 
   describe('listActivePeople', () => {
@@ -63,6 +80,21 @@ describe.runIf(RUN_DB_TESTS)('person.service', () => {
 
       const result = await listActivePeople(db, mosqueB.id);
       expect(result.find((p) => p.name === 'Only In A')).toBeUndefined();
+    });
+  });
+
+  describe('createPerson', () => {
+    it('inserts a Person scoped to the mosque and writes one audit entry', async () => {
+      const mosque = await seedMosque();
+      const actor = await seedUser();
+
+      const result = await createPerson(db, mosque.id, { name: 'Ustadz Fulan', phone: '0812345' }, actor.id);
+
+      expect(result.name).toBe('Ustadz Fulan');
+
+      const [row] = await db.select().from(people).where(eq(people.id, result.id));
+      expect(row?.mosqueId).toBe(mosque.id);
+      expect((row?.history as unknown[]).length).toBe(1);
     });
   });
 });

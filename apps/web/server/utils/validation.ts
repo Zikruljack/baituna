@@ -38,6 +38,11 @@ export const updateMosqueSchema = z
     message: 'At least one field is required',
   });
 
+export const createPersonSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  phone: z.string().trim().max(30).nullable().default(null),
+});
+
 export async function parseBody<T>(event: Parameters<typeof readBody>[0], schema: ZodType<T>) {
   return await readValidatedBody(event, (body) => schema.parse(body));
 }
