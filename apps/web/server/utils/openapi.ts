@@ -29,12 +29,81 @@ export const openApiDocument = {
       },
     },
     '/mosques/{id}/friday-schedule/current': {
-      get: { summary: 'Get this or next Friday assignment' },
+      get: {
+        summary: 'Get this or next Friday assignment',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Either an assignment or { has_assignment: false, assignment_date }' },
+        },
+      },
     },
     '/mosques/{id}/friday-schedule/history': {
-      get: { summary: 'Get Friday assignment history' },
+      get: {
+        summary: 'Get paginated Friday assignment history',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+          { name: 'page', in: 'query', required: false, schema: { type: 'integer', default: 1 } },
+          { name: 'pageSize', in: 'query', required: false, schema: { type: 'integer', default: 20 } },
+        ],
+        responses: { 200: { description: 'Paginated assignments, newest first' } },
+      },
     },
-    '/mosques/{id}/friday-schedule': { post: { summary: 'Create Friday assignment' } },
+    '/mosques/{id}/friday-schedule': {
+      post: {
+        summary: 'Create a Friday assignment',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          201: { description: 'Assignment created' },
+          409: { description: 'An assignment already exists for this date' },
+          422: { description: 'Not a Friday, in the past, or an unknown person id' },
+        },
+      },
+    },
+    '/mosques/{id}/friday-schedule/{assignmentId}': {
+      patch: {
+        summary: 'Update a Friday assignment (future dates only)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+          {
+            name: 'assignmentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Assignment updated' },
+          403: { description: 'This assignment date has already passed' },
+          404: { description: 'Assignment not found for this mosque' },
+        },
+      },
+    },
     '/mosques': {
       post: {
         summary: 'Submit mosque registration',
