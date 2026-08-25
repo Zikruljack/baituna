@@ -43,6 +43,13 @@ export const createPersonSchema = z.object({
   phone: z.string().trim().max(30).nullable().default(null),
 });
 
+export const updatePersonSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    phone: z.string().trim().max(30).nullable().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+
 export async function parseBody<T>(event: Parameters<typeof readBody>[0], schema: ZodType<T>) {
   return await readValidatedBody(event, (body) => schema.parse(body));
 }

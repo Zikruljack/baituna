@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import * as schema from '../../drizzle/schema';
 import { cities, mosques, people, provinces, users } from '../../drizzle/schema';
-import { createPerson, listActivePeople } from './person.service';
+import { createPerson, listActivePeople, updatePerson } from './person.service';
 
 const RUN_DB_TESTS = Boolean(process.env.DATABASE_URL);
 
@@ -95,6 +95,39 @@ describe.runIf(RUN_DB_TESTS)('person.service', () => {
       const [row] = await db.select().from(people).where(eq(people.id, result.id));
       expect(row?.mosqueId).toBe(mosque.id);
       expect((row?.history as unknown[]).length).toBe(1);
+    });
+  });
+
+  describe('updatePerson', () => {
+    it('updates fields and writes an audit entry', async () => {
+      const mosque = await seedMosque();
+      const actor1 = await seedUser();
+      const actor2 = await seedUser();
+      const created = await createPerson(db, mosque.id, { name: 'Before Name', phone: null }, actor1.id);
+
+      const result = await updatePerson(db, mosque.id, created.id, { name: 'After Name' }, actor2.id);
+      expect(result.name).toBe('After Name');
+
+      const [row] = await db.select().from(people).where(eq(people.id, created.id));
+      expect((row?.history as unknown[]).length).toBe(2);
+    });
+
+    it('404s when the Person belongs to a different mosque', async () => {
+      const mosqueA = await seedMosque();
+      const mosqueB = await seedMosque();
+      const actor = await seedUser();
+      const created = await createPerson(db, mosqueA.id, { name: 'Cross Mosque', phone: null }, actor.id);
+
+      await expect(updatePerson(db, mosqueB.id, created.id, { name: 'Hacked' }, actor.id)).rejects.toThrow();
+    });
+
+    it('404s when the Person is soft-deleted', async () => {
+      const mosque = await seedMosque();
+      const actor = await seedUser();
+      const created = await createPerson(db, mosque.id, { name: 'Will Delete', phone: null }, actor.id);
+      await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, created.id));
+
+      await expect(updatePerson(db, mosque.id, created.id, { name: 'Too Late' }, actor.id)).rejects.toThrow();
     });
   });
 });
