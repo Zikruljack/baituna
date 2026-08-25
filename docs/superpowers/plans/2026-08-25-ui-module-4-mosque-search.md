@@ -51,9 +51,15 @@ These apply to every task in this plan. Copied from the spec and verified agains
 - Consumes: nothing (pure type definitions).
 - Produces: `MosqueSummary`, `MosqueDetail`, `FridayAssignment`, `CurrentFridayAssignment`, `PaginatedAssignments`, `Person` — imported by Tasks 2, 3, 4, 5, 6, 7, 8, and by the Module 5/6 UI plans when they extend the same composables.
 
-No runtime behavior — pure type declarations copied verbatim from the backend service files already read and verified. Skip TDD steps; create the file and verify it typechecks.
+No runtime behavior — pure type declarations copied verbatim from the backend service files already read and verified. Skip TDD steps; create/extend the file and verify it typechecks.
 
-- [ ] **Step 1: Create the types file**
+- [ ] **Step 1: Check whether the file already exists**
+
+Run: `cat apps/web/types/api.ts 2>/dev/null || echo "does not exist"` (from `apps/web/`)
+
+`apps/web/types/api.ts` is shared across all five UI module plans (2, 3, 4, 5, 6) and any of them may run first. If the file already exists (e.g. Module 2 or 5's plan ran first and added `RegionOption`/`CityOption` or `Person`/`CreatePersonInput`/`UpdatePersonInput`), **append** the block below at the end of the file instead of overwriting it, and skip any interface that's already present under the same name (in particular, if Module 5 already added `Person`, do not redeclare it here — TypeScript will error on a duplicate export). If the file does not exist, create it fresh with the block below.
+
+- [ ] **Step 2: Create or append the types**
 
 ```typescript
 // apps/web/types/api.ts
@@ -127,12 +133,12 @@ export interface Person {
 }
 ```
 
-- [ ] **Step 2: Typecheck**
+- [ ] **Step 3: Typecheck**
 
 Run (from `apps/web`): `npm run typecheck`
 Expected: no new errors.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add apps/web/types/api.ts

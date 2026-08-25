@@ -164,18 +164,19 @@ Terinstal saat ini: `alert`, `avatar`, `badge`, `button`, `card`, `dialog`,
 | `tabs` | `/admin/masjid/[id]` (§2.4) | Memisahkan sub-panel Person dan Jadwal Jumat di satu halaman |
 
 **Date picker untuk Modul 6 (assignment Jumat)**: didelegasikan di spec
-desain sistem (§5) ke saat implementasi. Keputusan di sini:
-`input type="date"` polos, **bukan** komponen `calendar` shadcn-vue penuh.
-Alasan: assignment hanya boleh untuk hari Jumat mendatang — validasi "harus
-Jumat" tetap terjadi di backend (422 kalau salah), tapi UI bisa
-mempersempit pilihan lebih awal dengan menghitung Jumat berikutnya di
-client (logic sederhana, sama seperti `getCurrentOrNextFridayWib` di
-`server/utils/wib-date.ts` tapi versi pure-JS tanpa server-only APIs) dan
-menyajikannya sebagai beberapa pilihan `select` ("Jumat ini", "Jumat
-depan", "2 minggu lagi", dst.) alih-alih date picker kalender bebas — lebih
-cepat dipakai Mosque Admin yang memang hanya boleh pilih dari sedikit
-tanggal valid, dan menghindari state "tanggal dipilih lalu ditolak backend"
-yang membingungkan.
+desain sistem (§5) ke saat implementasi. Keputusan di sini: **tidak ada
+input tanggal sama sekali** — bukan `calendar` shadcn-vue, bukan juga
+`input type="date"` atau `select` multi-pilihan. Backend hanya pernah
+punya satu tanggal yang bisa dibuat dalam satu waktu: hasil
+`getCurrentOrNextFridayWib(now)` (Jumat ini kalau hari ini Jumat, kalau
+tidak Jumat berikutnya) — tidak ada endpoint untuk memilih Jumat lain di
+luar itu, dan `assignmentDate` tidak bisa diubah setelah dibuat. UI
+menghitung tanggal itu di client (port pure-JS dari
+`getCurrentOrNextFridayWib` di `server/utils/wib-date.ts`, tanpa
+server-only API) dan menampilkannya sebagai **teks read-only**, bukan
+kontrol input apa pun — ini menghindari state "tanggal dipilih lalu
+ditolak backend" sekaligus tidak menyiratkan pilihan yang sebenarnya tidak
+ada.
 
 Lokasi input peta/koordinat untuk form registrasi masjid (Modul 3):
 **tidak** pakai peta interaktif (Leaflet/Mapbox) di MVP ini — dua input
