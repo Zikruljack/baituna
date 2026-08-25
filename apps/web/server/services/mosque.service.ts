@@ -2,10 +2,11 @@ import { and, eq, gte, isNull, lte, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
 import type * as schema from '../../drizzle/schema';
-import { mosques } from '../../drizzle/schema';
+import { mosques, users } from '../../drizzle/schema';
 import { withAudit } from './audit.service';
 import type { Transaction } from './audit.service';
-import { upgradeToMosqueAdmin } from './user.service';
+import { hashPassword } from './password';
+import { findUserByEmail, upgradeToMosqueAdmin } from './user.service';
 
 export type Database = NodePgDatabase<typeof schema>;
 
@@ -16,12 +17,16 @@ export interface CreateMosqueInput {
   longitude: string;
   cityId: string;
   provinceId: string;
+  submitterName?: string;
+  email?: string;
+  password?: string;
 }
 
 export interface CreatedMosque {
   id: string;
   name: string;
   status: 'pending';
+  newAccount?: { id: string; name: string; email: string; role: 'public_user' };
 }
 
 export interface DuplicateCandidate {
@@ -76,9 +81,50 @@ const METERS_PER_DEGREE_LATITUDE = 111_320;
 export async function createMosque(
   db: Database,
   input: CreateMosqueInput,
-  actorId: string,
+  actorId: string | null,
 ): Promise<CreatedMosque> {
   return await db.transaction(async (tx) => {
+    let createdBy = actorId;
+    let newAccount: CreatedMosque['newAccount'];
+
+    if (createdBy === null) {
+      if (!input.submitterName || !input.email || !input.password) {
+        throw createError({
+          statusCode: 422,
+          statusMessage: 'submitterName, email, and password are required to register without an account',
+        });
+      }
+
+      const existing = await findUserByEmail(tx, input.email);
+      if (existing) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'Email sudah terdaftar. Masuk ke akun Anda lalu ajukan pendaftaran masjid dari sana.',
+        });
+      }
+
+      const passwordHash = await hashPassword(input.password);
+      const [insertedUser] = await tx
+        .insert(users)
+        .values({
+          name: input.submitterName,
+          email: input.email,
+          passwordHash,
+          provider: 'local',
+          role: 'public_user',
+        })
+        .returning();
+      if (!insertedUser) throw new Error('Failed to create submitter account');
+
+      createdBy = insertedUser.id;
+      newAccount = {
+        id: insertedUser.id,
+        name: insertedUser.name,
+        email: insertedUser.email,
+        role: 'public_user',
+      };
+    }
+
     const [inserted] = await tx
       .insert(mosques)
       .values({
@@ -89,7 +135,7 @@ export async function createMosque(
         cityId: input.cityId,
         provinceId: input.provinceId,
         status: 'pending',
-        createdBy: actorId,
+        createdBy,
       })
       .returning();
 
@@ -100,13 +146,13 @@ export async function createMosque(
       tableName: 'mosques',
       recordId: inserted.id,
       action: 'CREATE',
-      actorId,
+      actorId: createdBy,
       oldData: null,
       newData: { name: inserted.name, address: inserted.address, status: inserted.status },
       currentHistory: inserted.history as unknown[],
     });
 
-    return { id: inserted.id, name: inserted.name, status: 'pending' };
+    return { id: inserted.id, name: inserted.name, status: 'pending', newAccount };
   });
 }
 

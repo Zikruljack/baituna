@@ -127,6 +127,110 @@ describe.runIf(RUN_DB_TESTS)('createMosque', () => {
     expect(logs[0]?.action).toBe('CREATE');
   });
 
+  it('creates a new public_user account when actorId is null', async () => {
+    const timestamp = Date.now();
+    const [province] = await db.insert(provinces).values({ name: `AcctProv ${timestamp}` }).returning();
+    if (!province) throw new Error('province insert failed');
+    const [city] = await db.insert(cities).values({ name: `AcctCity ${timestamp}`, provinceId: province.id }).returning();
+    if (!city) throw new Error('city insert failed');
+
+    const unique = randomUUID();
+    const result = await createMosque(
+      db,
+      {
+        name: 'Masjid Publik Test',
+        address: 'Jl. Publik No. 1',
+        latitude: '5.5500000',
+        longitude: '95.3200000',
+        cityId: city.id,
+        provinceId: province.id,
+        submitterName: 'Pendaftar Publik',
+        email: `pendaftar-${unique}@gmail.com`,
+        password: 'password123',
+      },
+      null,
+    );
+
+    expect(result.status).toBe('pending');
+    expect(result.newAccount).toBeDefined();
+    expect(result.newAccount?.email).toBe(`pendaftar-${unique}@gmail.com`);
+    expect(result.newAccount?.role).toBe('public_user');
+
+    const [createdUser] = await db.select().from(users).where(eq(users.id, result.newAccount!.id));
+    expect(createdUser?.passwordHash).toBeTruthy();
+    expect(createdUser?.provider).toBe('local');
+
+    const [mosqueRow] = await db.select().from(mosques).where(eq(mosques.id, result.id));
+    expect(mosqueRow?.createdBy).toBe(result.newAccount!.id);
+  });
+
+  it('rejects registration when the email is already taken', async () => {
+    const timestamp = Date.now();
+    const [province] = await db.insert(provinces).values({ name: `DupeProv ${timestamp}` }).returning();
+    if (!province) throw new Error('province insert failed');
+    const [city] = await db.insert(cities).values({ name: `DupeCity ${timestamp}`, provinceId: province.id }).returning();
+    if (!city) throw new Error('city insert failed');
+
+    const unique = randomUUID();
+    const existingEmail = `taken-${unique}@gmail.com`;
+    await db.insert(users).values({
+      name: 'Existing User',
+      email: existingEmail,
+      passwordHash: 'irrelevant-hash',
+      provider: 'local',
+      role: 'public_user',
+    });
+
+    await expect(
+      createMosque(
+        db,
+        {
+          name: 'Masjid Duplikat Email',
+          address: 'Jl. Dupe No. 1',
+          latitude: '5.5500000',
+          longitude: '95.3200000',
+          cityId: city.id,
+          provinceId: province.id,
+          submitterName: 'Pendaftar Lain',
+          email: existingEmail,
+          password: 'password123',
+        },
+        null,
+      ),
+    ).rejects.toThrow();
+  });
+
+  it('creates a mosque for an already-authenticated actor without a newAccount', async () => {
+    const timestamp = Date.now();
+    const [province] = await db.insert(provinces).values({ name: `AuthProv ${timestamp}` }).returning();
+    if (!province) throw new Error('province insert failed');
+    const [city] = await db.insert(cities).values({ name: `AuthCity ${timestamp}`, provinceId: province.id }).returning();
+    if (!city) throw new Error('city insert failed');
+    const unique = randomUUID();
+    const [actor] = await db
+      .insert(users)
+      .values({ name: 'Actor', email: `actor-existing-${unique}@example.test`, role: 'public_user', provider: 'local' })
+      .returning();
+    if (!actor) throw new Error('actor insert failed');
+
+    const result = await createMosque(
+      db,
+      {
+        name: 'Masjid Sudah Login',
+        address: 'Jl. Login No. 1',
+        latitude: '5.5500000',
+        longitude: '95.3200000',
+        cityId: city.id,
+        provinceId: province.id,
+      },
+      actor.id,
+    );
+
+    expect(result.newAccount).toBeUndefined();
+    const [mosqueRow] = await db.select().from(mosques).where(eq(mosques.id, result.id));
+    expect(mosqueRow?.createdBy).toBe(actor.id);
+  });
+
   describe('checkForDuplicate', () => {
     it('flags a nearby mosque with a similar name', async () => {
       const timestamp = Date.now();
