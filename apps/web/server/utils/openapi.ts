@@ -100,6 +100,85 @@ export const openApiDocument = {
         },
       },
     },
+    '/mosques/{id}/people': {
+      get: {
+        summary: 'List active Person entries for a mosque',
+        security: [],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Active Person rows, alphabetical' },
+        },
+      },
+      post: {
+        summary: 'Add a Person to a mosque',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          201: { description: 'Person created' },
+          403: { description: 'Caller does not own this mosque' },
+        },
+      },
+    },
+    '/mosques/{id}/people/{personId}': {
+      patch: {
+        summary: 'Update a Person',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+          {
+            name: 'personId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Person updated' },
+          404: { description: 'Person not found for this mosque' },
+        },
+      },
+      delete: {
+        summary: 'Soft-delete a Person',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+          {
+            name: 'personId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          200: { description: 'Person soft-deleted' },
+          404: { description: 'Person not found for this mosque' },
+        },
+      },
+    },
     '/auth/login': { post: { summary: 'Authenticate user' } },
     '/provinces': {
       get: {
