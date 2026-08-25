@@ -41,6 +41,7 @@ import type {
 definePageMeta({
   middleware: ['auth', 'require-role'],
   requiredRoles: ['mosque_admin', 'super_admin'],
+  layout: 'admin',
 });
 
 interface MosqueOwnerCheck {
@@ -52,6 +53,13 @@ interface MosqueOwnerCheck {
 const route = useRoute();
 const mosqueId = route.params.id as string;
 const { user } = useAuth();
+
+const activeTab = computed({
+  get: () => (route.query.tab === 'jadwal' ? 'jadwal' : 'person'),
+  set: (value: string) => {
+    navigateTo({ path: route.path, query: { ...route.query, tab: value } });
+  },
+});
 const { listActive, create: createPerson, update: updatePerson, remove: removePerson } = usePeople();
 const { getCurrent, getHistory, create: createAssignment, update: updateAssignment } = useFridayAssignment();
 
@@ -298,7 +306,7 @@ const canManage = computed(() => Boolean(mosque.value) && !mosqueLoadFailed.valu
         <h1 class="font-display text-2xl font-bold tracking-tight sm:text-3xl">{{ mosque.name }}</h1>
       </div>
 
-      <Tabs default-value="person">
+      <Tabs :model-value="activeTab" @update:model-value="(v) => (activeTab = v === 'jadwal' ? 'jadwal' : 'person')">
         <TabsList>
           <TabsTrigger value="person">Person</TabsTrigger>
           <TabsTrigger value="jadwal">Jadwal Jumat</TabsTrigger>
