@@ -50,6 +50,27 @@ export const updatePersonSchema = z
   })
   .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
 
+export const createAssignmentSchema = z
+  .object({
+    assignmentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    khatibPersonId: uuidSchema.nullable().default(null),
+    imamPersonId: uuidSchema.nullable().default(null),
+    muazzinPersonId: uuidSchema.nullable().default(null),
+  })
+  .refine((data) => data.khatibPersonId || data.imamPersonId || data.muazzinPersonId, {
+    message: 'At least one of khatibPersonId, imamPersonId, muazzinPersonId is required',
+  });
+
+export const nearbyQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  radius: z.coerce.number().positive().max(50).default(5),
+});
+
 export async function parseBody<T>(event: Parameters<typeof readBody>[0], schema: ZodType<T>) {
   return await readValidatedBody(event, (body) => schema.parse(body));
+}
+
+export async function parseQuery<T>(event: Parameters<typeof getValidatedQuery>[0], schema: ZodType<T>) {
+  return await getValidatedQuery(event, (query) => schema.parse(query));
 }
