@@ -1,0 +1,1 @@
+ALTER TABLE "mosques" ADD COLUMN "friday_prayer_time" text;

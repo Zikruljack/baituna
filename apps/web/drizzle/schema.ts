@@ -94,6 +94,7 @@ export const mosques = pgTable(
     status: mosqueStatus('status').notNull().default('pending'),
     adminUserId: uuid('admin_user_id').references(() => users.id),
     photoUrl: text('photo_url'),
+    fridayPrayerTime: text('friday_prayer_time'),
   },
   (table) => [
     index('mosques_name_trgm_idx')
