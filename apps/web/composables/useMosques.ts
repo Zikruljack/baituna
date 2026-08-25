@@ -15,5 +15,13 @@ export function useMosques() {
     });
   }
 
-  return { getMyMosque };
+  async function updatePrayerTime(mosqueId: string, fridayPrayerTime: string): Promise<void> {
+    await $fetch(`/api/mosques/${mosqueId}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: { fridayPrayerTime },
+    });
+  }
+
+  return { getMyMosque, updatePrayerTime };
 }

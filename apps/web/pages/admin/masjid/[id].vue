@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { CalendarDate, type DateValue, getLocalTimeZone, today } from '@internationalized/date';
 import { computed, onMounted, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogClose,
@@ -32,11 +34,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getCurrentOrNextFridayWib } from '~/lib/wib-date-client';
 import type {
   CreateAssignmentInput,
-  CurrentFridayAssignment,
+  FridayAssignment,
   PaginatedAssignments,
   Person,
   UpdateAssignmentInput,
 } from '~/types/api';
+
+/** Parses a YYYY-MM-DD string into a CalendarDate for the Calendar component's v-model. */
+function isoToCalendarDate(iso: string): CalendarDate {
+  const [year, month, day] = iso.split('-').map(Number) as [number, number, number];
+  return new CalendarDate(year, month, day);
+}
+
+/** Formats a CalendarDate (or any DateValue) back to a YYYY-MM-DD string, matching assignmentDate's wire format. */
+function calendarDateToIso(date: DateValue): string {
+  const year = String(date.year).padStart(4, '0');
+  const month = String(date.month).padStart(2, '0');
+  const day = String(date.day).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 definePageMeta({
   middleware: ['auth', 'require-role'],
@@ -61,7 +77,7 @@ const activeTab = computed({
   },
 });
 const { listActive, create: createPerson, update: updatePerson, remove: removePerson } = usePeople();
-const { getCurrent, getHistory, create: createAssignment, update: updateAssignment } = useFridayAssignment();
+const { getHistory, create: createAssignment, update: updateAssignment } = useFridayAssignment();
 
 const mosque = ref<MosqueOwnerCheck | null>(null);
 const mosqueLoadFailed = ref(false);
@@ -182,7 +198,6 @@ async function confirmDelete() {
 }
 
 // --- Jadwal Jumat Tab State ---
-const currentAssignment = ref<CurrentFridayAssignment | null>(null);
 const history = ref<PaginatedAssignments | null>(null);
 const historyPage = ref(1);
 const historyPageSize = 20;
@@ -191,21 +206,80 @@ const historyTotalPages = computed(() => {
   return Math.max(1, Math.ceil(history.value.total / history.value.pageSize));
 });
 
-const targetDate = computed(() => getCurrentOrNextFridayWib(new Date()));
+const { getMyMosque, updatePrayerTime } = useMosques();
+
+const fridayPrayerTime = ref<string | null>(null);
+const prayerTimeDialogOpen = ref(false);
+const prayerTimeInput = ref('');
+const prayerTimeSaving = ref(false);
+
+// getMyMosque() only returns a value for the mosque this caller (as mosque_admin) owns.
+// A super_admin managing another mosque_admin's mosque will see fridayPrayerTime as
+// always null here — acceptable gap for MVP, not a primary flow.
+async function loadPrayerTime() {
+  const owned = await getMyMosque();
+  fridayPrayerTime.value = owned?.id === mosqueId ? owned.fridayPrayerTime : null;
+}
+
+async function submitPrayerTime() {
+  prayerTimeSaving.value = true;
+  try {
+    await updatePrayerTime(mosqueId, prayerTimeInput.value);
+    fridayPrayerTime.value = prayerTimeInput.value;
+    prayerTimeDialogOpen.value = false;
+    toast.success('Waktu shalat Jumat diperbarui.');
+  } catch {
+    toast.error('Gagal memperbarui waktu shalat Jumat.');
+  } finally {
+    prayerTimeSaving.value = false;
+  }
+}
+
+function openPrayerTimeDialog() {
+  prayerTimeInput.value = fridayPrayerTime.value ?? '';
+  prayerTimeDialogOpen.value = true;
+}
+
+const selectedDateIso = ref<string>(getCurrentOrNextFridayWib(new Date()));
+const selectedDateValue = computed<DateValue>({
+  get: () => isoToCalendarDate(selectedDateIso.value),
+  set: (value) => {
+    selectedDateIso.value = calendarDateToIso(value);
+  },
+});
+const allAssignments = ref<FridayAssignment[]>([]);
+
+async function loadAllAssignments() {
+  const result = await getHistory(mosqueId, 1, 100);
+  allAssignments.value = result.items;
+}
+
+const nextFridayDate = computed(() => getCurrentOrNextFridayWib(new Date()));
+
+const nextFridayHasAssignment = computed(() =>
+  allAssignments.value.some((a) => a.assignmentDate === nextFridayDate.value),
+);
+
+const assignmentForSelectedDate = computed(
+  () => allAssignments.value.find((a) => a.assignmentDate === selectedDateIso.value) ?? null,
+);
+
+const isSelectedDatePast = computed(
+  () => selectedDateValue.value.compare(today(getLocalTimeZone())) < 0,
+);
+
+function isCalendarDateDisabled(date: DateValue): boolean {
+  const jsDate = date.toDate(getLocalTimeZone());
+  const isFridayDate = jsDate.getDay() === 5;
+  const isPast = date.compare(today(getLocalTimeZone())) < 0;
+  return !isFridayDate || isPast;
+}
 
 const khatibPersonId = ref<string | null>(null);
 const imamPersonId = ref<string | null>(null);
 const muazzinPersonId = ref<string | null>(null);
 const isPastLocked = ref(false);
 const isSavingAssignment = ref(false);
-
-async function loadCurrentAssignment() {
-  try {
-    currentAssignment.value = await getCurrent(mosqueId);
-  } catch {
-    toast.error('Gagal memuat jadwal Jumat');
-  }
-}
 
 async function loadAssignmentHistory(page = historyPage.value) {
   try {
@@ -217,18 +291,12 @@ async function loadAssignmentHistory(page = historyPage.value) {
 }
 
 watch(
-  currentAssignment,
+  assignmentForSelectedDate,
   (value) => {
-    if (!value) return;
-    if (value.has_assignment) {
-      khatibPersonId.value = value.khatibPersonId;
-      imamPersonId.value = value.imamPersonId;
-      muazzinPersonId.value = value.muazzinPersonId;
-    } else {
-      khatibPersonId.value = null;
-      imamPersonId.value = null;
-      muazzinPersonId.value = null;
-    }
+    khatibPersonId.value = value?.khatibPersonId ?? null;
+    imamPersonId.value = value?.imamPersonId ?? null;
+    muazzinPersonId.value = value?.muazzinPersonId ?? null;
+    isPastLocked.value = false;
   },
   { immediate: true },
 );
@@ -247,17 +315,17 @@ async function handleSubmitAssignment() {
 
   isSavingAssignment.value = true;
   try {
-    if (currentAssignment.value?.has_assignment) {
+    if (assignmentForSelectedDate.value) {
       const input: UpdateAssignmentInput = {
         khatibPersonId: khatibPersonId.value,
         imamPersonId: imamPersonId.value,
         muazzinPersonId: muazzinPersonId.value,
       };
-      await updateAssignment(mosqueId, currentAssignment.value.id, input);
+      await updateAssignment(mosqueId, assignmentForSelectedDate.value.id, input);
       toast.success('Jadwal Jumat diperbarui.');
     } else {
       const input: CreateAssignmentInput = {
-        assignmentDate: targetDate.value,
+        assignmentDate: selectedDateIso.value,
         khatibPersonId: khatibPersonId.value,
         imamPersonId: imamPersonId.value,
         muazzinPersonId: muazzinPersonId.value,
@@ -265,7 +333,7 @@ async function handleSubmitAssignment() {
       await createAssignment(mosqueId, input);
       toast.success('Jadwal Jumat dibuat.');
     }
-    await Promise.all([loadCurrentAssignment(), loadAssignmentHistory(1)]);
+    await Promise.all([loadAllAssignments(), loadAssignmentHistory(1)]);
   } catch (error: unknown) {
     const statusCode = (error as { statusCode?: number })?.statusCode;
     if (statusCode === 403) {
@@ -284,8 +352,9 @@ onMounted(async () => {
   if (mosque.value) {
     await Promise.all([
       loadPeople(),
-      loadCurrentAssignment(),
+      loadAllAssignments(),
       loadAssignmentHistory(1),
+      loadPrayerTime(),
     ]);
   }
 });
@@ -379,18 +448,27 @@ const canManage = computed(() => Boolean(mosque.value) && !mosqueLoadFailed.valu
         <!-- TAB 2: JADWAL JUMAT -->
         <TabsContent value="jadwal" class="space-y-6 pt-4">
           <div class="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
-            <div>
-              <h2 class="font-display text-lg font-semibold">
-                {{ currentAssignment?.has_assignment ? 'Jadwal Jumat Saat Ini' : 'Buat Jadwal Jumat' }}
-              </h2>
-              <p class="text-xs text-muted-foreground mt-1">
-                Tanggal:
-                <span class="font-mono font-medium tabular-nums">
-                  {{ currentAssignment?.has_assignment ? currentAssignment.assignmentDate : (currentAssignment?.assignment_date ?? targetDate) }}
-                </span>
-                (tidak dapat diubah setelah dibuat)
-              </p>
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="font-display text-lg font-semibold">Shalat Jumat</h2>
+                <p class="text-sm text-muted-foreground">
+                  Dimulai pukul
+                  <span class="font-medium text-foreground">{{ fridayPrayerTime ?? 'Belum diatur' }}</span>
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" @click="openPrayerTimeDialog">Ubah</Button>
             </div>
+
+            <Alert v-if="!nextFridayHasAssignment" variant="default">
+              <AlertDescription>
+                Jadwal Jumat depan ({{ nextFridayDate }}) belum diisi.
+              </AlertDescription>
+            </Alert>
+
+            <Calendar
+              v-model="selectedDateValue"
+              :is-date-disabled="isCalendarDateDisabled"
+            />
 
             <Alert v-if="isPastLocked" variant="destructive">
               <AlertDescription>
@@ -398,10 +476,17 @@ const canManage = computed(() => Boolean(mosque.value) && !mosqueLoadFailed.valu
               </AlertDescription>
             </Alert>
 
+            <div class="text-xs text-muted-foreground">
+              Tanggal terpilih:
+              <span class="font-mono font-medium tabular-nums">{{ selectedDateIso }}</span>
+              <span v-if="isSelectedDatePast"> (sudah lewat)</span>
+              <span v-else-if="assignmentForSelectedDate"> (sudah terisi — mode edit)</span>
+            </div>
+
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div class="space-y-1.5">
                 <Label>Khatib</Label>
-                <Select v-model="khatibPersonId" :disabled="isPastLocked">
+                <Select v-model="khatibPersonId" :disabled="isPastLocked || isSelectedDatePast">
                   <SelectTrigger><SelectValue placeholder="Pilih Khatib" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem v-for="p in people" :key="p.id" :value="p.id">
@@ -412,7 +497,7 @@ const canManage = computed(() => Boolean(mosque.value) && !mosqueLoadFailed.valu
               </div>
               <div class="space-y-1.5">
                 <Label>Imam</Label>
-                <Select v-model="imamPersonId" :disabled="isPastLocked">
+                <Select v-model="imamPersonId" :disabled="isPastLocked || isSelectedDatePast">
                   <SelectTrigger><SelectValue placeholder="Pilih Imam" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem v-for="p in people" :key="p.id" :value="p.id">
@@ -423,7 +508,7 @@ const canManage = computed(() => Boolean(mosque.value) && !mosqueLoadFailed.valu
               </div>
               <div class="space-y-1.5">
                 <Label>Muazzin</Label>
-                <Select v-model="muazzinPersonId" :disabled="isPastLocked">
+                <Select v-model="muazzinPersonId" :disabled="isPastLocked || isSelectedDatePast">
                   <SelectTrigger><SelectValue placeholder="Pilih Muazzin" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem v-for="p in people" :key="p.id" :value="p.id">
@@ -434,10 +519,31 @@ const canManage = computed(() => Boolean(mosque.value) && !mosqueLoadFailed.valu
               </div>
             </div>
 
-            <Button :disabled="isPastLocked || isSavingAssignment" @click="handleSubmitAssignment">
-              {{ currentAssignment?.has_assignment ? 'Simpan Perubahan' : 'Buat Jadwal' }}
+            <Button :disabled="isPastLocked || isSelectedDatePast || isSavingAssignment" @click="handleSubmitAssignment">
+              {{ assignmentForSelectedDate ? 'Simpan Perubahan' : 'Buat Jadwal' }}
             </Button>
           </div>
+
+          <Dialog v-model:open="prayerTimeDialogOpen">
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Ubah Waktu Shalat Jumat</DialogTitle>
+                <DialogDescription>Berlaku untuk semua jadwal Jumat mendatang sampai diubah lagi.</DialogDescription>
+              </DialogHeader>
+              <div class="space-y-1 py-2">
+                <Label for="prayer-time">Jam Mulai</Label>
+                <Input id="prayer-time" v-model="prayerTimeInput" type="time" />
+              </div>
+              <DialogFooter>
+                <DialogClose as-child>
+                  <Button variant="outline" size="sm">Batal</Button>
+                </DialogClose>
+                <Button size="sm" :disabled="prayerTimeSaving" @click="submitPrayerTime">
+                  {{ prayerTimeSaving ? 'Menyimpan...' : 'Simpan' }}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <div class="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
             <h3 class="font-display text-lg font-semibold">Riwayat Jadwal Jumat</h3>
