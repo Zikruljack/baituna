@@ -61,6 +61,14 @@ export const createAssignmentSchema = z
     message: 'At least one of khatibPersonId, imamPersonId, muazzinPersonId is required',
   });
 
+export const updateAssignmentSchema = z
+  .object({
+    khatibPersonId: uuidSchema.nullable().optional(),
+    imamPersonId: uuidSchema.nullable().optional(),
+    muazzinPersonId: uuidSchema.nullable().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+
 export const nearbyQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),

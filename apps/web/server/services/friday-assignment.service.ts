@@ -117,3 +117,63 @@ export async function createAssignment(
     };
   });
 }
+
+export async function updateAssignment(
+  db: Database,
+  mosqueId: string,
+  assignmentId: string,
+  updates: Partial<{ khatibPersonId: string | null; imamPersonId: string | null; muazzinPersonId: string | null }>,
+  actorId: string,
+): Promise<AssignmentRecord> {
+  return await db.transaction(async (tx) => {
+    const rows = await tx
+      .select()
+      .from(fridayAssignments)
+      .where(
+        and(
+          eq(fridayAssignments.id, assignmentId),
+          eq(fridayAssignments.mosqueId, mosqueId),
+          isNull(fridayAssignments.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    const assignment = rows[0];
+    if (!assignment) {
+      throw createError({ statusCode: 404, statusMessage: 'Assignment not found' });
+    }
+    if (isPastWib(assignment.assignmentDate, new Date())) {
+      throw createError({ statusCode: 403, statusMessage: 'This assignment date has already passed' });
+    }
+
+    const personIds = Object.values(updates).filter((id): id is string => id !== null && id !== undefined);
+    await assertPersonIdsBelongToMosque(tx, mosqueId, personIds);
+
+    const [updated] = await tx
+      .update(fridayAssignments)
+      .set(updates)
+      .where(eq(fridayAssignments.id, assignmentId))
+      .returning();
+    if (!updated) throw new Error('Failed to update assignment');
+
+    await withAudit(tx, {
+      table: fridayAssignments,
+      tableName: 'friday_assignments',
+      recordId: assignmentId,
+      action: 'UPDATE',
+      actorId,
+      oldData: Object.fromEntries(Object.keys(updates).map((key) => [key, (assignment as Record<string, unknown>)[key]])),
+      newData: updates,
+      currentHistory: assignment.history as unknown[],
+    });
+
+    return {
+      id: updated.id,
+      mosqueId: updated.mosqueId,
+      assignmentDate: updated.assignmentDate,
+      khatibPersonId: updated.khatibPersonId,
+      imamPersonId: updated.imamPersonId,
+      muazzinPersonId: updated.muazzinPersonId,
+    };
+  });
+}

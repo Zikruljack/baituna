@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import * as schema from '../../drizzle/schema';
 import { cities, fridayAssignments, mosques, people, provinces, users } from '../../drizzle/schema';
-import { createAssignment } from './friday-assignment.service';
+import { createAssignment, updateAssignment } from './friday-assignment.service';
 
 const RUN_DB_TESTS = Boolean(process.env.DATABASE_URL);
 
@@ -105,6 +105,55 @@ describe.runIf(RUN_DB_TESTS)('friday-assignment.service', () => {
       await expect(
         createAssignment(db, mosque.id, { assignmentDate: '2020-01-03', khatibPersonId: person.id, imamPersonId: null, muazzinPersonId: null }, actor.id),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('updateAssignment', () => {
+    it('updates person assignments for a future Friday', async () => {
+      const { mosque, person } = await seedMosqueWithPerson();
+      const actor1 = await seedUser();
+      const actor2 = await seedUser();
+      const created = await createAssignment(
+        db, mosque.id,
+        { assignmentDate: '2099-01-23', khatibPersonId: person.id, imamPersonId: null, muazzinPersonId: null },
+        actor1.id,
+      );
+      const [secondPerson] = await db.insert(people).values({ mosqueId: mosque.id, name: 'Imam Baru', phone: null }).returning();
+      if (!secondPerson) throw new Error('person insert failed');
+
+      const result = await updateAssignment(db, mosque.id, created.id, { imamPersonId: secondPerson.id }, actor2.id);
+      expect(result.imamPersonId).toBe(secondPerson.id);
+
+      const [row] = await db.select().from(fridayAssignments).where(eq(fridayAssignments.id, created.id));
+      expect((row?.history as unknown[]).length).toBe(2);
+    });
+
+    it('403s when the assignment date has already passed', async () => {
+      const { mosque, person } = await seedMosqueWithPerson();
+      const actor = await seedUser();
+      // Insert a past-dated row directly — createAssignment itself refuses to
+      // create past dates, so a past row can only exist from data created
+      // before "today" moved past it. Direct insert simulates that state.
+      const [pastRow] = await db
+        .insert(fridayAssignments)
+        .values({ mosqueId: mosque.id, assignmentDate: '2020-01-03', khatibPersonId: person.id, createdBy: actor.id })
+        .returning();
+      if (!pastRow) throw new Error('assignment insert failed');
+
+      await expect(updateAssignment(db, mosque.id, pastRow.id, { khatibPersonId: null }, actor.id)).rejects.toThrow();
+    });
+
+    it('404s when the assignment belongs to a different mosque', async () => {
+      const { mosque: mosqueA, person } = await seedMosqueWithPerson();
+      const { mosque: mosqueB } = await seedMosqueWithPerson();
+      const actor = await seedUser();
+      const created = await createAssignment(
+        db, mosqueA.id,
+        { assignmentDate: '2099-01-30', khatibPersonId: person.id, imamPersonId: null, muazzinPersonId: null },
+        actor.id,
+      );
+
+      await expect(updateAssignment(db, mosqueB.id, created.id, { khatibPersonId: null }, actor.id)).rejects.toThrow();
     });
   });
 });
