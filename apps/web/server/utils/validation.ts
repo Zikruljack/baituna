@@ -18,6 +18,33 @@ const longitudeSchema = z
     return parsed >= -180 && parsed <= 180;
   }, 'longitude must be between -180 and 180');
 
+const KNOWN_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'yahoo.com',
+  'yahoo.co.id',
+  'outlook.com',
+  'hotmail.com',
+  'icloud.com',
+  'proton.me',
+  'protonmail.com',
+]);
+
+export const emailProviderSchema = z
+  .string()
+  .email()
+  .refine((value) => {
+    const domain = value.split('@')[1]?.toLowerCase();
+    return KNOWN_EMAIL_DOMAINS.has(domain ?? '');
+  }, 'Gunakan email dari penyedia yang dikenal (Gmail, Yahoo, Outlook, dll.)');
+
+export const passwordSchema = z.string().min(8).max(72);
+
+const submitterNameSchema = z.string().trim().min(1).max(200);
+
+const fridayPrayerTimeSchema = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'fridayPrayerTime must be in HH:mm 24-hour format');
+
 export const createMosqueSchema = z.object({
   name: z.string().trim().min(1).max(200),
   address: z.string().trim().min(1).max(500),
@@ -25,6 +52,9 @@ export const createMosqueSchema = z.object({
   longitude: longitudeSchema,
   cityId: uuidSchema,
   provinceId: uuidSchema,
+  submitterName: submitterNameSchema.optional(),
+  email: emailProviderSchema.optional(),
+  password: passwordSchema.optional(),
 });
 
 export const updateMosqueSchema = z
@@ -33,6 +63,7 @@ export const updateMosqueSchema = z
     address: z.string().trim().min(1).max(500).optional(),
     latitude: latitudeSchema.optional(),
     longitude: longitudeSchema.optional(),
+    fridayPrayerTime: fridayPrayerTimeSchema.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field is required',

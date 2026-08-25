@@ -71,3 +71,51 @@ describe('searchQuerySchema', () => {
     expect(searchQuerySchema.safeParse({ q: 'a'.repeat(201) }).success).toBe(false);
   });
 });
+
+describe('createMosqueSchema — public registration fields', () => {
+  const validRegistration = {
+    ...validBase,
+    latitude: '5.5500000',
+    longitude: '95.3200000',
+    submitterName: 'Budi Santoso',
+    email: 'budi@gmail.com',
+    password: 'password123',
+  };
+
+  it('accepts a valid submission with a known email provider', () => {
+    expect(createMosqueSchema.safeParse(validRegistration).success).toBe(true);
+  });
+
+  it('rejects an email from an unrecognized domain', () => {
+    expect(
+      createMosqueSchema.safeParse({ ...validRegistration, email: 'budi@unknown-domain.xyz' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('rejects a password shorter than 8 characters', () => {
+    expect(
+      createMosqueSchema.safeParse({ ...validRegistration, password: 'short1' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects an empty submitter name', () => {
+    expect(
+      createMosqueSchema.safeParse({ ...validRegistration, submitterName: '' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('updateMosqueSchema — fridayPrayerTime', () => {
+  it('accepts a valid HH:mm time', () => {
+    expect(updateMosqueSchema.safeParse({ fridayPrayerTime: '12:30' }).success).toBe(true);
+  });
+
+  it('rejects an invalid time format', () => {
+    expect(updateMosqueSchema.safeParse({ fridayPrayerTime: '25:99' }).success).toBe(false);
+  });
+
+  it('rejects a non-padded time', () => {
+    expect(updateMosqueSchema.safeParse({ fridayPrayerTime: '9:5' }).success).toBe(false);
+  });
+});
