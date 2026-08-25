@@ -20,6 +20,11 @@ import {
   Palette,
   Eye,
   Sliders,
+  ChevronDown,
+  User as UserIcon,
+  Settings,
+  LogOut,
+  FileText,
 } from 'lucide-vue-next';
 
 import { Button } from '@/components/ui/button';
@@ -583,7 +588,7 @@ const sampleMosqueData = [
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <!-- Form Inputs -->
           <Card class="border-border shadow-sm p-6 space-y-4">
             <h3 class="font-display text-base font-semibold">Form Field Controls</h3>
@@ -622,6 +627,56 @@ const sampleMosqueData = [
                 class="border-destructive focus-visible:ring-destructive/30"
               />
               <p class="text-[11px] font-medium text-destructive">Alamat lengkap masjid wajib diisi.</p>
+            </div>
+          </Card>
+
+          <!-- Dropdown Menu Showcase -->
+          <Card class="border-border shadow-sm p-6 space-y-4 flex flex-col justify-between">
+            <div>
+              <h3 class="font-display text-base font-semibold">Dropdown Menu Visual</h3>
+              <p class="text-xs text-muted-foreground mt-1">
+                Menu popup kontekstual dengan hover token, separator, ikon, dan varian destruktif.
+              </p>
+            </div>
+
+            <div class="rounded-lg bg-background p-4 border border-border space-y-3">
+              <div class="text-xs font-medium text-foreground">Menu Akun & Aksi Pengguna</div>
+              <div class="flex flex-wrap gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <Button variant="outline" class="gap-2">
+                      <UserIcon class="size-4 text-primary" />
+                      <span>Akun Pengurus</span>
+                      <ChevronDown class="size-3.5 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" class="w-56">
+                    <DropdownMenuLabel>Akun DKM Baiturrahman</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem class="gap-2" @click="() => toast.info('Buka Profil DKM')">
+                      <UserIcon class="size-4 text-muted-foreground" />
+                      <span>Profil Pengurus</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem class="gap-2" @click="() => toast.info('Buka Laporan Keuangan')">
+                      <FileText class="size-4 text-muted-foreground" />
+                      <span>Laporan Keuangan</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem class="gap-2" @click="() => toast.info('Buka Pengaturan')">
+                      <Settings class="size-4 text-muted-foreground" />
+                      <span>Pengaturan</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" class="gap-2" @click="() => toast.error('Berhasil keluar')">
+                      <LogOut class="size-4" />
+                      <span>Keluar Akun</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            <div class="text-[11px] text-muted-foreground">
+              Didukung token <code>--popover</code> dan <code>--accent</code> dengan dukungan light/dark mode terpadu.
             </div>
           </Card>
 
@@ -800,10 +855,10 @@ const sampleMosqueData = [
                         <MoreVertical class="size-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" class="w-40 bg-card text-card-foreground border-border">
+                    <DropdownMenuContent align="end" class="w-40">
                       <DropdownMenuLabel class="text-xs">Aksi Pengurus</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem class="text-xs gap-2 cursor-pointer" @click="() => toast.info(`Detail ${item.name}`)">
+                      <DropdownMenuItem class="text-xs gap-2" @click="() => toast.info(`Detail ${item.name}`)">
                         <Eye class="size-3.5" />
                         <span>Lihat Profil</span>
                       </DropdownMenuItem>
