@@ -1,6 +1,32 @@
 <script setup lang="ts">
-import { Moon, Sun, Building2, BookOpen, Compass, LogIn, LogOut, PlusCircle, Github } from 'lucide-vue-next';
+import { computed } from 'vue';
+import {
+  BookOpen,
+  Building2,
+  ChevronDown,
+  ClipboardList,
+  Compass,
+  Github,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Moon,
+  PlusCircle,
+  ShieldAlert,
+  Sun,
+  User as UserIcon,
+} from 'lucide-vue-next';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const colorMode = useColorMode();
 const { user, isAuthenticated, logout } = useAuth();
@@ -8,6 +34,13 @@ const { user, isAuthenticated, logout } = useAuth();
 function toggleTheme() {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
 }
+
+const roleBadgeLabel = computed(() => {
+  if (!user.value) return '';
+  if (user.value.role === 'super_admin') return 'Super Admin';
+  if (user.value.role === 'mosque_admin') return 'Pengelola DKM';
+  return 'Jamaah';
+});
 </script>
 
 <template>
@@ -50,7 +83,7 @@ function toggleTheme() {
         </nav>
       </div>
 
-      <!-- Action Buttons & Theme Switcher -->
+      <!-- Action Buttons, User Menu & Theme Switcher -->
       <div class="flex items-center gap-2 sm:gap-3">
         <!-- Theme Toggle -->
         <Button
@@ -85,32 +118,87 @@ function toggleTheme() {
           </Button>
         </a>
 
-        <NuxtLink to="/#daftar-masjid" class="hidden sm:inline-flex">
-          <Button variant="outline" size="sm" class="gap-1.5">
-            <PlusCircle class="size-4 text-primary" />
-            <span>Daftar Masjid</span>
-          </Button>
-        </NuxtLink>
-
-        <Transition name="fade" mode="out-in">
-          <div v-if="isAuthenticated && user" key="auth-user" class="flex items-center gap-2">
-            <span class="text-xs font-medium hidden md:inline-block text-muted-foreground">
-              {{ user.name }}
-            </span>
-            <Button variant="outline" size="sm" class="gap-1.5" @click="logout">
-              <LogOut class="size-4" />
-              <span>Keluar</span>
-            </Button>
-          </div>
-          <div v-else key="auth-guest">
-            <NuxtLink to="/login">
-              <Button size="sm" class="gap-1.5">
-                <LogIn class="size-4" />
-                <span>Masuk</span>
+        <!-- Authenticated User Dropdown Menu -->
+        <div v-if="isAuthenticated && user" class="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" size="sm" class="gap-2 px-3">
+                <div class="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <UserIcon class="size-3.5" />
+                </div>
+                <span class="max-w-[120px] truncate text-xs font-medium sm:max-w-[160px]">
+                  {{ user.name }}
+                </span>
+                <ChevronDown class="size-3.5 text-muted-foreground" />
               </Button>
-            </NuxtLink>
-          </div>
-        </Transition>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-56">
+              <DropdownMenuLabel class="space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-sm text-foreground truncate">{{ user.name }}</span>
+                </div>
+                <div class="text-[11px] text-muted-foreground truncate">{{ user.email }}</div>
+                <Badge variant="secondary" class="mt-1 text-[10px] px-1.5 py-0 font-normal">
+                  {{ roleBadgeLabel }}
+                </Badge>
+              </DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+
+              <NuxtLink to="/admin">
+                <DropdownMenuItem class="cursor-pointer gap-2">
+                  <LayoutDashboard class="size-4 text-primary" />
+                  <span>Dashboard</span>
+                </DropdownMenuItem>
+              </NuxtLink>
+
+              <NuxtLink to="/masjid/pendaftaran-saya">
+                <DropdownMenuItem class="cursor-pointer gap-2">
+                  <ClipboardList class="size-4 text-muted-foreground" />
+                  <span>Pendaftaran Saya</span>
+                </DropdownMenuItem>
+              </NuxtLink>
+
+              <NuxtLink v-if="user.role === 'super_admin'" to="/admin/pendaftaran">
+                <DropdownMenuItem class="cursor-pointer gap-2">
+                  <ShieldAlert class="size-4 text-amber-500" />
+                  <span>Antrean Persetujuan</span>
+                </DropdownMenuItem>
+              </NuxtLink>
+
+              <NuxtLink to="/masjid/daftar">
+                <DropdownMenuItem class="cursor-pointer gap-2">
+                  <PlusCircle class="size-4 text-muted-foreground" />
+                  <span>Daftarkan Masjid Baru</span>
+                </DropdownMenuItem>
+              </NuxtLink>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem class="cursor-pointer gap-2 text-destructive focus:text-destructive" @click="logout">
+                <LogOut class="size-4" />
+                <span>Keluar</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <!-- Guest Menu -->
+        <div v-else class="flex items-center gap-2">
+          <NuxtLink to="/masjid/daftar" class="hidden sm:inline-flex">
+            <Button variant="outline" size="sm" class="gap-1.5">
+              <PlusCircle class="size-4 text-primary" />
+              <span>Daftar Masjid</span>
+            </Button>
+          </NuxtLink>
+
+          <NuxtLink to="/login">
+            <Button size="sm" class="gap-1.5">
+              <LogIn class="size-4" />
+              <span>Masuk</span>
+            </Button>
+          </NuxtLink>
+        </div>
       </div>
     </div>
   </header>
