@@ -401,3 +401,29 @@ export async function listMySubmissions(db: Database, userId: string): Promise<M
     .where(and(eq(mosques.createdBy, userId), isNull(mosques.deletedAt)))
     .orderBy(sql`${mosques.createdAt} DESC`);
 }
+
+export interface OwnedMosque {
+  id: string;
+  name: string;
+  address: string;
+  fridayPrayerTime: string | null;
+}
+
+/** Returns the single mosque this user administers, or null. Relies on the "one account, one mosque" invariant — never returns more than one row. */
+export async function findMosqueByAdminUserId(
+  db: Database,
+  userId: string,
+): Promise<OwnedMosque | null> {
+  const rows = await db
+    .select({
+      id: mosques.id,
+      name: mosques.name,
+      address: mosques.address,
+      fridayPrayerTime: mosques.fridayPrayerTime,
+    })
+    .from(mosques)
+    .where(and(eq(mosques.adminUserId, userId), isNull(mosques.deletedAt)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}

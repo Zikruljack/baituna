@@ -11,6 +11,7 @@ import {
   approveMosque,
   checkForDuplicate,
   createMosque,
+  findMosqueByAdminUserId,
   listMySubmissions,
   listPendingMosques,
   rejectMosque,
@@ -1309,6 +1310,51 @@ describe.runIf(RUN_DB_TESTS)('createMosque', () => {
           createdAt: pendingCreatedAt,
         },
       ]);
+    });
+  });
+
+  describe('findMosqueByAdminUserId', () => {
+    it('returns the mosque owned by the given admin', async () => {
+      const timestamp = Date.now();
+      const [province] = await db.insert(provinces).values({ name: `OwnProv ${timestamp}` }).returning();
+      if (!province) throw new Error('province insert failed');
+      const [city] = await db.insert(cities).values({ name: `OwnCity ${timestamp}`, provinceId: province.id }).returning();
+      if (!city) throw new Error('city insert failed');
+      const unique = randomUUID();
+      const [admin] = await db
+        .insert(users)
+        .values({ name: 'Mosque Admin', email: `own-admin-${unique}@example.test`, role: 'mosque_admin', provider: 'local' })
+        .returning();
+      if (!admin) throw new Error('admin insert failed');
+      const [mosque] = await db
+        .insert(mosques)
+        .values({
+          name: 'Masjid Milik Admin',
+          address: 'Jl. Admin No. 1',
+          latitude: '5.5500000',
+          longitude: '95.3200000',
+          cityId: city.id,
+          provinceId: province.id,
+          status: 'approved',
+          adminUserId: admin.id,
+        })
+        .returning();
+      if (!mosque) throw new Error('mosque insert failed');
+
+      const found = await findMosqueByAdminUserId(db, admin.id);
+      expect(found?.id).toBe(mosque.id);
+    });
+
+    it('returns null when the user owns no mosque', async () => {
+      const unique = randomUUID();
+      const [user] = await db
+        .insert(users)
+        .values({ name: 'No Mosque', email: `no-mosque-${unique}@example.test`, role: 'public_user', provider: 'local' })
+        .returning();
+      if (!user) throw new Error('user insert failed');
+
+      const found = await findMosqueByAdminUserId(db, user.id);
+      expect(found).toBeNull();
     });
   });
 });
