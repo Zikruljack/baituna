@@ -1,4 +1,4 @@
-import { type ZodType, z } from 'zod';
+import { type ZodTypeAny, z } from 'zod';
 
 export const uuidSchema = z.string().uuid();
 
@@ -84,10 +84,10 @@ export const searchQuerySchema = z.object({
   q: z.string().trim().min(1).max(200),
 });
 
-export async function parseBody<T>(event: Parameters<typeof readBody>[0], schema: ZodType<T>) {
-  return await readValidatedBody(event, (body) => schema.parse(body));
+export async function parseBody<T extends ZodTypeAny>(event: Parameters<typeof readBody>[0], schema: T): Promise<z.infer<T>> {
+  return await readValidatedBody(event, (body) => schema.parse(body) as z.infer<T>);
 }
 
-export async function parseQuery<T>(event: Parameters<typeof getValidatedQuery>[0], schema: ZodType<T>) {
-  return await getValidatedQuery(event, (query) => schema.parse(query));
+export async function parseQuery<T extends ZodTypeAny>(event: Parameters<typeof getValidatedQuery>[0], schema: T): Promise<z.infer<T>> {
+  return await getValidatedQuery(event, (query) => schema.parse(query) as z.infer<T>);
 }
