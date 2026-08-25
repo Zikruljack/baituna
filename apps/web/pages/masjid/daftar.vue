@@ -8,13 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import type { AuthResponse } from '~/lib/auth-types';
 import type { DuplicateWarning } from '~/types/api';
 
-definePageMeta({ middleware: 'auth' });
-
+const { user, isAuthenticated, setSession } = useAuth();
 const { submitMosqueRegistration } = useMosqueRegistration();
 const { listProvinces, listCities } = useRegions();
 
+const submitterName = ref('');
+const email = ref('');
+const password = ref('');
 const name = ref('');
 const address = ref('');
 const provinceId = ref('');
@@ -68,12 +71,27 @@ async function onSubmit() {
       longitude: longitude.value,
       cityId: cityId.value,
       provinceId: provinceId.value,
+      ...(isAuthenticated.value
+        ? {}
+        : { submitterName: submitterName.value, email: email.value, password: password.value }),
     });
     duplicateWarning.value = result.duplicateWarning;
+
+    if (result.token && result.user) {
+      setSession({ token: result.token, user: result.user } as AuthResponse);
+    }
+
     toast.success('Pendaftaran masjid berhasil dikirim.');
     await navigateTo('/masjid/pendaftaran-saya');
-  } catch {
-    errorMessage.value = 'Gagal mengirim pendaftaran. Periksa kembali data yang diisi.';
+  } catch (error: unknown) {
+    const statusCode = (error as { statusCode?: number })?.statusCode;
+    if (statusCode === 409) {
+      errorMessage.value = 'Email sudah terdaftar. Masuk ke akun Anda lalu ajukan pendaftaran masjid dari sana.';
+    } else if (statusCode === 403) {
+      errorMessage.value = 'Akun Anda sudah menjadi admin masjid lain. Satu akun hanya bisa mengelola satu masjid.';
+    } else {
+      errorMessage.value = 'Gagal mengirim pendaftaran. Periksa kembali data yang diisi.';
+    }
   } finally {
     isSubmitting.value = false;
   }
@@ -92,6 +110,10 @@ async function onSubmit() {
           <AlertDescription>{{ errorMessage }}</AlertDescription>
         </Alert>
 
+        <Alert v-if="isAuthenticated && user">
+          <AlertDescription>Anda mendaftar sebagai {{ user.name }} ({{ user.email }}).</AlertDescription>
+        </Alert>
+
         <Alert v-if="duplicateWarning.length > 0" variant="default">
           <AlertTitle>Kemungkinan Masjid Serupa Ditemukan</AlertTitle>
           <AlertDescription>
@@ -105,6 +127,22 @@ async function onSubmit() {
         </Alert>
 
         <form class="space-y-4" @submit.prevent="onSubmit">
+          <template v-if="!isAuthenticated">
+            <div class="space-y-2">
+              <Label for="submitterName">Nama Pendaftar</Label>
+              <Input id="submitterName" v-model="submitterName" required maxlength="200" />
+            </div>
+            <div class="space-y-2">
+              <Label for="email">Email</Label>
+              <Input id="email" v-model="email" type="email" required placeholder="nama@gmail.com" />
+            </div>
+            <div class="space-y-2">
+              <Label for="password">Kata Sandi</Label>
+              <Input id="password" v-model="password" type="password" required minlength="8" />
+              <p class="text-xs text-muted-foreground">Minimal 8 karakter.</p>
+            </div>
+          </template>
+
           <div class="space-y-2">
             <Label for="name">Nama Masjid</Label>
             <Input id="name" v-model="name" required maxlength="200" />
