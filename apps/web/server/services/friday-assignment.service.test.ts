@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import * as schema from '../../drizzle/schema';
 import { cities, fridayAssignments, mosques, people, provinces, users } from '../../drizzle/schema';
-import { createAssignment, updateAssignment } from './friday-assignment.service';
+import { createAssignment, getCurrentAssignment, updateAssignment } from './friday-assignment.service';
 
 const RUN_DB_TESTS = Boolean(process.env.DATABASE_URL);
 
@@ -154,6 +154,35 @@ describe.runIf(RUN_DB_TESTS)('friday-assignment.service', () => {
       );
 
       await expect(updateAssignment(db, mosqueB.id, created.id, { khatibPersonId: null }, actor.id)).rejects.toThrow();
+    });
+  });
+
+  describe('getCurrentAssignment', () => {
+    it('returns has_assignment: false with the next Friday date when nothing is scheduled', async () => {
+      const { mosque } = await seedMosqueWithPerson();
+      // Fixed "now" so the expected next-Friday date is deterministic in this test.
+      const now = new Date('2026-08-19T03:00:00Z'); // Wednesday in WIB
+
+      const result = await getCurrentAssignment(db, mosque.id, now);
+      expect(result).toEqual({ has_assignment: false, assignment_date: '2026-08-21' });
+    });
+
+    it('returns the assignment when one exists for the current/next Friday', async () => {
+      const { mosque, person } = await seedMosqueWithPerson();
+      const actor = await seedUser();
+      await createAssignment(
+        db, mosque.id,
+        { assignmentDate: '2099-02-06', khatibPersonId: person.id, imamPersonId: null, muazzinPersonId: null },
+        actor.id,
+      );
+      const now = new Date('2099-02-03T03:00:00Z'); // Tuesday before that Friday
+
+      const result = await getCurrentAssignment(db, mosque.id, now);
+      expect(result.has_assignment).toBe(true);
+      if (result.has_assignment) {
+        expect(result.assignmentDate).toBe('2099-02-06');
+        expect(result.khatibPersonId).toBe(person.id);
+      }
     });
   });
 });

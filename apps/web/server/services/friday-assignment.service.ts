@@ -4,7 +4,7 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type * as schema from '../../drizzle/schema';
 import { fridayAssignments, people } from '../../drizzle/schema';
 import { withAudit } from './audit.service';
-import { isFriday, isPastWib } from '../utils/wib-date';
+import { getCurrentOrNextFridayWib, isFriday, isPastWib } from '../utils/wib-date';
 
 export type Database = NodePgDatabase<typeof schema>;
 
@@ -176,4 +176,49 @@ export async function updateAssignment(
       muazzinPersonId: updated.muazzinPersonId,
     };
   });
+}
+
+export type CurrentAssignment =
+  | {
+      has_assignment: true;
+      id: string;
+      assignmentDate: string;
+      khatibPersonId: string | null;
+      imamPersonId: string | null;
+      muazzinPersonId: string | null;
+    }
+  | { has_assignment: false; assignment_date: string };
+
+export async function getCurrentAssignment(
+  db: Database,
+  mosqueId: string,
+  now: Date,
+): Promise<CurrentAssignment> {
+  const targetDate = getCurrentOrNextFridayWib(now);
+
+  const rows = await db
+    .select()
+    .from(fridayAssignments)
+    .where(
+      and(
+        eq(fridayAssignments.mosqueId, mosqueId),
+        eq(fridayAssignments.assignmentDate, targetDate),
+        isNull(fridayAssignments.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) {
+    return { has_assignment: false, assignment_date: targetDate };
+  }
+
+  return {
+    has_assignment: true,
+    id: row.id,
+    assignmentDate: row.assignmentDate,
+    khatibPersonId: row.khatibPersonId,
+    imamPersonId: row.imamPersonId,
+    muazzinPersonId: row.muazzinPersonId,
+  };
 }
