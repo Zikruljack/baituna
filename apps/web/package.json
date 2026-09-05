@@ -16,7 +16,7 @@
     "db:seed:regions": "node --env-file=.env scripts/seed-regions.ts"
   },
   "dependencies": {
-    "@lucide/vue": "^1.34.0",
+    "@lucide/vue": "^1.39.0",
     "@nuxtjs/color-mode": "^4.0.1",
     "@tailwindcss/vite": "^4.3.3",
     "@vee-validate/zod": "^4.15.1",
