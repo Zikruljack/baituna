@@ -29,7 +29,7 @@
     "nuxt": "^4.0.3",
     "pg": "^8.16.3",
     "reka-ui": "^2.10.4",
-    "swagger-ui-dist": "^5.20.1",
+    "swagger-ui-dist": "^5.34.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
     "vee-validate": "^4.15.1",
