@@ -24,7 +24,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
-    "jose": "^6.0.10",
+    "jose": "^6.2.13",
     "lucide-vue-next": "^1.0.0",
     "nuxt": "^4.0.3",
     "pg": "^8.16.3",
